@@ -97,9 +97,18 @@ public class GitUtils {
             
             // 尝试拉取默认分支
             try {
+                // 设置Git配置以改善网络连接
+                git.getRepository().getConfig().setInt("http", null, "postBuffer", 524288000); // 设置POST缓冲区为500MB
+                git.getRepository().getConfig().setInt("http", null, "timeout", 60); // 设置HTTP超时为60秒
+                try {
+                    git.getRepository().getConfig().save();
+                } catch (IOException e) {
+                    System.err.println("保存Git配置失败: " + e.getMessage());
+                }
+                
                 PullResult result = git.pull()
                     .setCredentialsProvider(credentialsProvider)
-                    .setTimeout(60) // 设置60秒超时
+                    .setTimeout(120) // 设置120秒超时
                     .call();
                     
                 if (result.isSuccessful()) {
@@ -211,7 +220,7 @@ public class GitUtils {
                 }
             }
             
-            Iterable<org.eclipse.jgit.transport.PushResult> pushResults = pushCommand.setTimeout(60).call();
+            Iterable<org.eclipse.jgit.transport.PushResult> pushResults = pushCommand.setTimeout(120).call();
             for (org.eclipse.jgit.transport.PushResult pushResult : pushResults) {
                 for (org.eclipse.jgit.transport.RemoteRefUpdate refUpdate : pushResult.getRemoteUpdates()) {
                     if (refUpdate.getStatus() != org.eclipse.jgit.transport.RemoteRefUpdate.Status.OK) {
