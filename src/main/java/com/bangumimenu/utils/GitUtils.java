@@ -17,25 +17,29 @@ import java.io.IOException;
  */
 public class GitUtils {
     
-    private static final String REPO_PATH = System.getProperty("user.dir");
-    private static Git git;
-    
     /**
      * 初始化Git仓库
      */
     public static boolean initRepo() {
         try {
-            File repoDir = new File(REPO_PATH);
+            File repoDir = new File(UserDataSync.getUserDataDir());
             File gitDir = new File(repoDir, ".git");
+            
+            if (!repoDir.exists()) {
+                repoDir.mkdirs(); // 创建用户数据目录
+            }
             
             if (!gitDir.exists()) {
                 // 如果不存在.git目录，则初始化一个新的仓库
-                git = Git.init().setDirectory(repoDir).call();
-                System.out.println("Git仓库初始化完成");
+                Git git = Git.init().setDirectory(repoDir).call();
+                System.out.println("Git仓库初始化完成，位置: " + UserDataSync.getUserDataDir());
+                
+                // 复制初始数据文件
+                UserDataSync.initializeUserData();
             } else {
                 // 如果存在.git目录，则打开现有仓库
-                git = Git.open(repoDir);
-                System.out.println("已连接到现有Git仓库");
+                Git git = Git.open(repoDir);
+                System.out.println("已连接到现有Git仓库，位置: " + UserDataSync.getUserDataDir());
             }
             
             // 设置远程仓库URL
@@ -47,10 +51,11 @@ public class GitUtils {
                     return false;
                 }
                 
-                git.getRepository().getConfig().setString("remote", "origin", "url", remoteUrl);
-                git.getRepository().getConfig().setString("remote", "origin", "fetch", "+refs/heads/*:refs/remotes/origin/*");
+                Repository repository = Git.open(repoDir).getRepository();
+                repository.getConfig().setString("remote", "origin", "url", remoteUrl);
+                repository.getConfig().setString("remote", "origin", "fetch", "+refs/heads/*:refs/remotes/origin/*");
                 try {
-                    git.getRepository().getConfig().save();
+                    repository.getConfig().save();
                 } catch (IOException e) {
                     System.err.println("保存Git配置失败: " + e.getMessage());
                     e.printStackTrace();
@@ -70,12 +75,15 @@ public class GitUtils {
      * 拉取最新更改
      */
     public static boolean pullChanges() {
-        if (git == null) {
-            System.err.println("Git仓库未初始化");
-            return false;
-        }
-        
         try {
+            File repoDir = new File(UserDataSync.getUserDataDir());
+            if (!repoDir.exists()) {
+                System.err.println("用户数据目录不存在: " + UserDataSync.getUserDataDir());
+                return false;
+            }
+            
+            Git git = Git.open(repoDir);
+            
             String username = AppConfig.getProperty("git.username", "");
             String password = AppConfig.getProperty("git.password", "");
             
@@ -105,7 +113,7 @@ public class GitUtils {
             }
             
             // 先尝试拉取默认分支
-            PullResult result = null;
+            org.eclipse.jgit.api.PullResult result = null;
             try {
                 result = git.pull()
                     .setCredentialsProvider(credentialsProvider)
@@ -121,18 +129,6 @@ public class GitUtils {
                     fetch.setCredentialsProvider(credentialsProvider);
                     fetch.call();
                     
-                    // 获取远程仓库的HEAD引用以确定默认分支
-                    org.eclipse.jgit.lib.Ref HEAD = git.getRepository().findRef("HEAD");
-                    String defaultBranch = "main"; // 默认假设为main分支
-                    
-                    if (HEAD != null && HEAD.getTarget() != null) {
-                        String headTarget = HEAD.getTarget().getName();
-                        // 从类似 "refs/remotes/origin/main" 提取分支名
-                        if (headTarget.contains("refs/remotes/origin/")) {
-                            defaultBranch = headTarget.substring(headTarget.lastIndexOf('/') + 1);
-                        }
-                    }
-                    
                     // 尝试获取远程仓库的默认分支信息
                     java.util.List<org.eclipse.jgit.lib.Ref> remoteRefs = git.branchList()
                         .setListMode(org.eclipse.jgit.api.ListBranchCommand.ListMode.REMOTE)
@@ -146,7 +142,8 @@ public class GitUtils {
                     String actualDefaultBranch = null;
                     for (String branch : possibleDefaultBranches) {
                         for (org.eclipse.jgit.lib.Ref ref : remoteRefs) {
-                            if (ref.getName().equals("refs/remotes/origin/" + branch)) {
+                            String refName = ref.getName();
+                            if (refName.endsWith("/" + branch)) { // 检查是否以分支名结尾
                                 actualDefaultBranch = branch;
                                 break;
                             }
@@ -160,9 +157,14 @@ public class GitUtils {
                         System.out.println("检测到远程默认分支: " + actualDefaultBranch + ", 正在拉取...");
                         result = git.pull()
                             .setCredentialsProvider(credentialsProvider)
+                            .setRemote("origin")
+                            .setRemoteBranchName(actualDefaultBranch)
                             .setTimeout(120)
                             .call();
                         System.out.println("成功拉取最新更改（" + actualDefaultBranch + "分支）");
+                        
+                        // 拉取成功后，同步到项目目录
+                        UserDataSync.syncFromUserToProject();
                     } else {
                         // 如果以上方法都失败，尝试获取远程仓库的第一个分支
                         if (!remoteRefs.isEmpty()) {
@@ -183,9 +185,14 @@ public class GitUtils {
                                 System.out.println("检测到远程分支: " + firstBranch + ", 正在拉取...");
                                 result = git.pull()
                                     .setCredentialsProvider(credentialsProvider)
+                                    .setRemote("origin")
+                                    .setRemoteBranchName(firstBranch)
                                     .setTimeout(120)
                                     .call();
                                 System.out.println("成功拉取最新更改（" + firstBranch + "分支）");
+                                
+                                // 拉取成功后，同步到项目目录
+                                UserDataSync.syncFromUserToProject();
                             } else {
                                 System.err.println("无法找到任何远程分支");
                                 return false;
@@ -218,6 +225,8 @@ public class GitUtils {
                 
             if (result != null && result.isSuccessful()) {
                 System.out.println("成功拉取最新更改");
+                // 拉取成功后，同步到项目目录
+                UserDataSync.syncFromUserToProject();
                 return true;
             } else if (result != null) {
                 System.out.println("拉取失败: " + result.getMergeResult());
@@ -237,27 +246,27 @@ public class GitUtils {
      * 推送更改 - 仅推送JSON数据文件
      */
     public static boolean pushChanges(String commitMessage) {
-        if (git == null) {
-            System.err.println("Git仓库未初始化");
-            return false;
-        }
-        
         try {
+            File repoDir = new File(UserDataSync.getUserDataDir());
+            if (!repoDir.exists()) {
+                System.err.println("用户数据目录不存在: " + UserDataSync.getUserDataDir());
+                return false;
+            }
+            
+            Git git = Git.open(repoDir);
+            
+            // 先从项目目录同步文件到用户目录，以确保推送最新的数据
+            UserDataSync.syncFromProjectToUser();
+            
             // 只添加JSON数据文件，而不是所有文件
             String[] dataFiles = AppConfig.getProperty("git.data.files", "bangumi.json,current_bangumi.json").split(",");
             for (String file : dataFiles) {
                 file = file.trim();
                 if (!file.isEmpty()) {
-                    // 检查文件是否存在
-                    File dataFile = new File(System.getProperty("user.dir"), "src/main/resources/" + file);
+                    // 检查用户目录下的文件是否存在
+                    File dataFile = new File(UserDataSync.getUserDataDir(), file);
                     if (dataFile.exists()) {
-                        git.add().addFilepattern("src/main/resources/" + file).call();
-                    } else {
-                        // 检查根目录下的文件
-                        dataFile = new File(System.getProperty("user.dir"), file);
-                        if (dataFile.exists()) {
-                            git.add().addFilepattern(file).call();
-                        }
+                        git.add().addFilepattern(file).call();
                     }
                 }
             }
@@ -345,15 +354,24 @@ public class GitUtils {
      * 检查是否有本地更改
      */
     public static boolean hasLocalChanges() {
-        if (git == null) {
-            return false;
-        }
-        
         try {
+            File repoDir = new File(UserDataSync.getUserDataDir());
+            if (!repoDir.exists()) {
+                return false;
+            }
+            
+            Git git = Git.open(repoDir);
             return !git.status().call().isClean();
-        } catch (GitAPIException e) {
+        } catch (Exception e) {
             System.err.println("检查更改状态失败: " + e.getMessage());
             return false;
         }
+    }
+    
+    /**
+     * 获取用户数据目录路径
+     */
+    public static String getUserDataDir() {
+        return UserDataSync.getUserDataDir();
     }
 }

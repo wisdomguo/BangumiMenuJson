@@ -39,11 +39,14 @@ public class MainWindow extends JFrame {
         setupEventHandlers();
         setupWindow();
         
-        // 启动时尝试初始化Git仓库并同步数据
-        initializeGitSync();
+        // 启动时初始化用户数据并尝试初始化Git仓库及同步数据
+        initializeUserDataAndGitSync();
     }
     
-    private void initializeGitSync() {
+    private void initializeUserDataAndGitSync() {
+        // 首先初始化用户数据
+        com.bangumimenu.utils.UserDataSync.initializeUserData();
+        
         if (AppConfig.getBooleanProperty("git.enabled", true)) {
             // 初始化Git仓库
             SwingUtilities.invokeLater(() -> {
@@ -273,25 +276,25 @@ public class MainWindow extends JFrame {
         topBottomSplitPane.setResizeWeight(0.45); // 设置调整权重
         topBottomSplitPane.setDividerSize(3); // 设置分割条大小
         topBottomSplitPane.setEnabled(false); // 禁止用户拖动分割条
-        
+
         // 右侧 - 已观看列表
         JScrollPane watchedScrollPane = new JScrollPane(watchedList);
         watchedScrollPane.setBorder(BorderFactory.createTitledBorder("已观看的番剧"));
         
         // 中右分割面板 - 中间内容和已观看列表
         JSplitPane middleRightSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, topBottomSplitPane, watchedScrollPane);
-        middleRightSplitPane.setDividerLocation(0.95); //
-        middleRightSplitPane.setResizeWeight(0.95); // 设置调整权重
+        middleRightSplitPane.setDividerLocation(0.8); // 平均分配中间和右侧空间
+        middleRightSplitPane.setResizeWeight(0.8); // 设置调整权重
         middleRightSplitPane.setDividerSize(3); // 设置分割条大小
         middleRightSplitPane.setEnabled(false); // 禁止用户拖动分割条
-        
+
         // 主分割面板 - 左侧未观看列表和右侧内容（中间+已观看）
         leftRightSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, unwatchedScrollPane, middleRightSplitPane);
-        leftRightSplitPane.setDividerLocation(0.1); //
-        leftRightSplitPane.setResizeWeight(0.1); // 设置调整权重
+        leftRightSplitPane.setDividerLocation(0.2); // 给左侧未观看列表更多空间
+        leftRightSplitPane.setResizeWeight(0.2); // 设置调整权重
         leftRightSplitPane.setDividerSize(3); // 设置分割条大小
         leftRightSplitPane.setEnabled(false); // 禁止用户拖动分割条
-        
+
         add(leftRightSplitPane, BorderLayout.CENTER);
     }
 

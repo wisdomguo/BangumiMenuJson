@@ -19,11 +19,24 @@ import java.util.List;
 public class JsonUtils {
 
     private static final Gson gson = new GsonBuilder()
+            .registerTypeAdapter(LocalDateTime.class, new JsonSerializer<LocalDateTime>() {
+                @Override
+                public JsonElement serialize(LocalDateTime localDateTime, Type srcType, JsonSerializationContext context) {
+                    if (localDateTime == null) {
+                        return null;
+                    }
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                    return new JsonPrimitive(localDateTime.format(formatter));
+                }
+            })
             .registerTypeAdapter(LocalDateTime.class, new JsonDeserializer<LocalDateTime>() {
                 @Override
                 public LocalDateTime deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) 
                         throws JsonParseException {
                     try {
+                        if (json == null || json.getAsString() == null || json.getAsString().isEmpty()) {
+                            return null;
+                        }
                         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
                         return LocalDateTime.parse(json.getAsString(), formatter);
                     } catch (DateTimeParseException e) {
@@ -31,6 +44,7 @@ public class JsonUtils {
                     }
                 }
             })
+            .setPrettyPrinting() // 格式化输出，便于阅读
             .create();
 
     /**
@@ -39,17 +53,35 @@ public class JsonUtils {
      * @return Bangumi对象列表
      */
     public static List<Bangumi> readBangumiList(String filePath) {
-        try (InputStreamReader reader = new InputStreamReader(
-                JsonUtils.class.getResourceAsStream(filePath), StandardCharsets.UTF_8)) {
+        try {
+            InputStream inputStream = null;
             
-            Type listType = new TypeToken<List<Bangumi>>(){}.getType();
-            return gson.fromJson(reader, listType);
+            // 首先尝试从用户数据目录读取
+            String userDataPath = GitUtils.getUserDataDir() + "/" + filePath.replaceFirst("^/", "");
+            File userFile = new File(userDataPath);
+            if (userFile.exists()) {
+                inputStream = new FileInputStream(userFile);
+            } else {
+                // 如果用户目录中不存在，则从资源文件读取
+                inputStream = JsonUtils.class.getResourceAsStream(filePath);
+            }
+            
+            if (inputStream != null) {
+                try (InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+                    Type listType = new TypeToken<List<Bangumi>>(){}.getType();
+                    return gson.fromJson(reader, listType);
+                }
+            } else {
+                System.err.println("无法找到文件: " + filePath);
+                // 返回空列表而不是null，以确保程序可以正常启动
+                return new java.util.ArrayList<>();
+            }
         } catch (IOException e) {
             e.printStackTrace();
-            return null;
+            return new java.util.ArrayList<>();
         } catch (JsonSyntaxException e) {
             System.err.println("JSON格式错误: " + e.getMessage());
-            return null;
+            return new java.util.ArrayList<>();
         }
     }
 
@@ -66,6 +98,16 @@ public class JsonUtils {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+    
+    /**
+     * 将Bangumi列表写入用户数据目录下的JSON文件
+     * @param bangumis Bangumi对象列表
+     * @param fileName 文件名（相对于用户数据目录）
+     */
+    public static void writeBangumiListToUserDir(List<Bangumi> bangumis, String fileName) {
+        String userDataPath = GitUtils.getUserDataDir() + "/" + fileName;
+        writeBangumiList(bangumis, userDataPath);
     }
 
     /**

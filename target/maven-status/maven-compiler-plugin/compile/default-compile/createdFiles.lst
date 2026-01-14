@@ -1,4 +1,5 @@
 com\bangumimenu\utils\GuiUtils.class
+com\bangumimenu\utils\UserDataSync.class
 com\bangumimenu\BangumiMenuApp.class
 com\bangumimenu\gui\GitConfigDialog.class
 com\bangumimenu\utils\JsonUtils$2.class
@@ -6,8 +7,8 @@ com\bangumimenu\entity\Bangumi.class
 com\bangumimenu\gui\GitConfigDialog$1.class
 com\bangumimenu\config\AppConfig.class
 com\bangumimenu\utils\GitUtils.class
+com\bangumimenu\utils\JsonUtils$3.class
 com\bangumimenu\utils\JsonUtils$1.class
 com\bangumimenu\gui\MainWindow.class
 com\bangumimenu\gui\GitConfigDialog$2.class
-com\bangumimenu\BangumiMenuApp$1.class
 com\bangumimenu\utils\JsonUtils.class
