@@ -172,7 +172,7 @@ public class GitUtils {
                 }
             }
                 
-        } catch (GitAPIException | IOException e) {
+        } catch (Exception e) {
             System.err.println("拉取更改失败: " + e.getMessage());
             e.printStackTrace();
             return false;
