@@ -39,11 +39,11 @@ public class MainWindow extends JFrame {
         setupEventHandlers();
         setupWindow();
         
-        // 启动时初始化用户数据并尝试初始化Git仓库及同步数据
-        initializeUserDataAndGitSync();
+        // 启动时立即初始化用户数据并强制从远程仓库拉取最新内容进行覆盖
+        initializeUserDataAndForcePull();
     }
     
-    private void initializeUserDataAndGitSync() {
+    private void initializeUserDataAndForcePull() {
         // 首先初始化用户数据
         com.bangumimenu.utils.UserDataSync.initializeUserData();
         
@@ -51,12 +51,43 @@ public class MainWindow extends JFrame {
             // 初始化Git仓库
             SwingUtilities.invokeLater(() -> {
                 if (GitUtils.initRepo()) {
-                    if (AppConfig.getBooleanProperty("git.auto.sync.on.startup", true)) {
-                        syncWithRemote();
-                    }
+                    // 立即强制从远程仓库拉取最新内容进行覆盖，无论是否有更新
+                    forcePullFromRemote();
                 }
             });
         }
+    }
+    
+    /**
+     * 强制从远程仓库拉取最新内容进行覆盖
+     */
+    private void forcePullFromRemote() {
+        if (!AppConfig.getBooleanProperty("git.enabled", true)) {
+            return;
+        }
+        
+        // 在后台线程中执行强制拉取
+        SwingUtilities.invokeLater(() -> {
+            Thread syncThread = new Thread(() -> {
+                System.out.println("正在强制从远程仓库拉取最新内容进行覆盖...");
+                boolean success = GitUtils.forcePullChanges();
+                if (success) {
+                    // 重新加载数据
+                    SwingUtilities.invokeLater(() -> {
+                        allBangumis = JsonUtils.readBangumiList("/bangumi.json");
+                        currentBangumiList = JsonUtils.readBangumiList("/current_bangumi.json");
+                        updateBangumiLists(); // 刷新列表显示
+                        updateCurrentBangumiDisplay(); // 刷新当前观看显示
+                        System.out.println("强制拉取和数据更新成功！");
+                    });
+                } else {
+                    SwingUtilities.invokeLater(() -> {
+                        System.err.println("强制拉取失败，请检查网络连接和远程仓库设置");
+                    });
+                }
+            });
+            syncThread.start();
+        });
     }
     
     private void syncWithRemote() {
@@ -356,9 +387,8 @@ public class MainWindow extends JFrame {
         currentBangumiList.clear();
         currentBangumiList.add(selected);
         
-        // 保存当前观看到文件
-        String currentBangumiJsonPath = System.getProperty("user.dir") + "/src/main/resources/current_bangumi.json";
-        JsonUtils.writeBangumiList(currentBangumiList, currentBangumiJsonPath);
+        // 保存当前观看到文件（使用用户目录）
+        JsonUtils.writeBangumiListToUserDir(currentBangumiList, "current_bangumi.json");
         
         // 推送更改到远程仓库
         if (AppConfig.getBooleanProperty("git.enabled", true)) {
@@ -474,13 +504,11 @@ public class MainWindow extends JFrame {
             }
             allBangumis.add(newBangumi);
             
-            // 保存到文件
-            String bangumiJsonPath = System.getProperty("user.dir") + "/src/main/resources/bangumi.json";
-            JsonUtils.writeBangumiList(allBangumis, bangumiJsonPath);
+            // 保存到文件（使用用户目录）
+            JsonUtils.writeBangumiListToUserDir(allBangumis, "bangumi.json");
             
             // 保存当前观看列表（以防万一）
-            String currentBangumiJsonPath = System.getProperty("user.dir") + "/src/main/resources/current_bangumi.json";
-            JsonUtils.writeBangumiList(currentBangumiList, currentBangumiJsonPath);
+            JsonUtils.writeBangumiListToUserDir(currentBangumiList, "current_bangumi.json");
             
             // 推送更改到远程仓库
             if (AppConfig.getBooleanProperty("git.enabled", true)) {
@@ -521,12 +549,11 @@ public class MainWindow extends JFrame {
         // 从当前观看列表中移除
         currentBangumiList.clear();
         
-        // 保存到文件
-        String bangumiJsonPath = System.getProperty("user.dir") + "/src/main/resources/bangumi.json";
-        JsonUtils.writeBangumiList(allBangumis, bangumiJsonPath);
+        // 保存到文件（使用用户目录）
+        JsonUtils.writeBangumiListToUserDir(allBangumis, "bangumi.json");
         
         // 同时清空当前观看文件
-        JsonUtils.writeBangumiList(currentBangumiList, System.getProperty("user.dir") + "/src/main/resources/current_bangumi.json");
+        JsonUtils.writeBangumiListToUserDir(currentBangumiList, "current_bangumi.json");
         
         // 推送更改到远程仓库
         if (AppConfig.getBooleanProperty("git.enabled", true)) {

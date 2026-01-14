@@ -98,6 +98,14 @@ public class JsonUtils {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        
+        // 如果写入的是用户目录中的文件，也需要确保同步到项目资源目录（仅在开发环境）
+        String userDataDir = GitUtils.getUserDataDir();
+        if (filePath.startsWith(userDataDir)) {
+            // 这是写入用户目录的文件，如果是开发环境，也要同步到项目目录
+            String fileName = new File(filePath).getName();
+            UserDataSync.syncFromUserToProjectFile(fileName);
+        }
     }
     
     /**
@@ -108,6 +116,22 @@ public class JsonUtils {
     public static void writeBangumiListToUserDir(List<Bangumi> bangumis, String fileName) {
         String userDataPath = GitUtils.getUserDataDir() + "/" + fileName;
         writeBangumiList(bangumis, userDataPath);
+    }
+    
+    /**
+     * 将Bangumi列表写入项目资源目录下的JSON文件（仅在开发环境使用）
+     * @param bangumis Bangumi对象列表
+     * @param fileName 文件名（相对于项目资源目录）
+     */
+    public static void writeBangumiListToProjectResources(List<Bangumi> bangumis, String fileName) {
+        // 检查是否在开发环境中运行（即存在src/main/java目录）
+        String projectResourcesPath = System.getProperty("user.dir") + "/src/main/resources/" + fileName;
+        File resourcesDir = new File(System.getProperty("user.dir"), "src/main/resources");
+        
+        // 仅在开发环境（存在src/main/resources目录）下写入项目目录
+        if (resourcesDir.exists()) {
+            writeBangumiList(bangumis, projectResourcesPath);
+        }
     }
 
     /**

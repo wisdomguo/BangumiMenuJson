@@ -8,7 +8,8 @@
     "proposer": "无",
     "watched": false,
     "votes": 0
-  },{
+  },
+  {
     "title": "fsf",
     "description": "fsf",
     "writer": "无",
@@ -16,6 +17,46 @@
     "director": "无",
     "proposer": "无",
     "watched": true,
+    "votes": 0
+  },
+  {
+    "title": "fate",
+    "description": "fate",
+    "writer": "无",
+    "original": "无",
+    "director": "无",
+    "proposer": "无",
+    "watched": true,
+    "votes": 0
+  },
+  {
+    "title": "葬送的芙莉莲",
+    "description": "芙莉莲第二季",
+    "writer": "",
+    "original": "",
+    "director": "",
+    "proposer": "ka",
+    "watched": false,
+    "votes": 0
+  },
+  {
+    "title": "垂涎欲滴的非人少女",
+    "description": "垂涎欲滴的非人少女",
+    "writer": "",
+    "original": "",
+    "director": "",
+    "proposer": "皮皮",
+    "watched": false,
+    "votes": 0
+  },
+  {
+    "title": "辉夜大小姐想让我告白",
+    "description": "",
+    "writer": "",
+    "original": "赤坂明",
+    "director": "",
+    "proposer": "ka",
+    "watched": false,
     "votes": 0
   }
 ]
