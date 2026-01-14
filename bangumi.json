@@ -1,0 +1,72 @@
+[
+  {
+    "title": "Attack on Titan",
+    "description": "In a world where humanity resides within enormous walled cities, a young boy watches his mother die at the hands of a giant humanoid creature.",
+    "writer": "Hajime Isayama",
+    "original": "Hajime Isayama",
+    "director": "Tetsuro Araki",
+    "proposer": "Anime Studio",
+    "watched": false,
+    "votes": 0
+  },
+  {
+    "title": "Death Note",
+    "description": "A high school student discovers a supernatural notebook that grants its user the ability to kill anyone whose name is written in it.",
+    "writer": "Tsugumi Ohba",
+    "original": "Tsugumi Ohba",
+    "director": "Tetsuro Araki",
+    "proposer": "Producer Team",
+    "watched": true,
+    "votes": 0
+  },
+  {
+    "title": "Cowboy Bebop",
+    "description": "The futuristic misadventures and tragedies of an easygoing bounty hunter and his partners.",
+    "writer": "Shinichiro Watanabe",
+    "original": "Shinichiro Watanabe",
+    "director": "Shinichiro Watanabe",
+    "proposer": "Sunrise Studio",
+    "watched": false,
+    "votes": 0
+  },
+  {
+    "title": "Fullmetal Alchemist: Brotherhood",
+    "description": "Two brothers search for a Philosopher\u0027s Stone after an attempt to revive their deceased mother goes awry and leaves them in damaged physical forms.",
+    "writer": "Hiromu Arakawa",
+    "original": "Hiromu Arakawa",
+    "director": "Yasuhiro Irie",
+    "proposer": "Fan Group",
+    "watched": true,
+    "votes": 0
+  },
+  {
+    "title": "测试",
+    "description": "测试",
+    "writer": "测试",
+    "original": "测试",
+    "director": "测试",
+    "proposer": "测试",
+    "watched": false,
+    "votes": 0
+  },
+  {
+    "title": "测试2",
+    "description": "测试",
+    "writer": "测试",
+    "original": "测试",
+    "director": "测试",
+    "proposer": "测试",
+    "watched": true,
+    "votes": 0
+  },
+  {
+    "title": "测试3",
+    "description": "测试测试",
+    "writer": "测试",
+    "original": "测试",
+    "director": "测试",
+    "proposer": "测试",
+    "watched": false,
+    "votes": 0
+  }
+]
