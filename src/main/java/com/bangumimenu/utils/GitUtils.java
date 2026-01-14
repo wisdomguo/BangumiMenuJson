@@ -99,6 +99,7 @@ public class GitUtils {
             try {
                 PullResult result = git.pull()
                     .setCredentialsProvider(credentialsProvider)
+                    .setTimeout(60) // 设置60秒超时
                     .call();
                     
                 if (result.isSuccessful()) {
@@ -109,69 +110,24 @@ public class GitUtils {
                     return false;
                 }
             } catch (org.eclipse.jgit.api.errors.RefNotAdvertisedException e) {
-                // 如果默认拉取失败，尝试先获取远程分支信息
-                System.out.println("检测到默认分支拉取失败，正在获取远程分支信息...");
-                
-                // 先 fetch 远程分支信息
-                git.fetch()
-                    .setCredentialsProvider(credentialsProvider)
-                    .setRemote("origin")
-                    .call();
-                
-                // 尝试 checkout 并 pull master 分支
-                String remoteBranch = "master";
-                try {
-                    // 检出远程分支
-                    git.checkout()
-                        .setName(remoteBranch)
-                        .setCreateBranch(true)
-                        .setUpstreamMode(org.eclipse.jgit.api.CreateBranchCommand.SetupUpstreamMode.SET_UPSTREAM)
-                        .setStartPoint("origin/" + remoteBranch)
-                        .call();
-                    
-                    // 拉取更新
-                    PullResult result = git.pull()
-                        .setCredentialsProvider(credentialsProvider)
-                        .call();
-                        
-                    if (result.isSuccessful()) {
-                        System.out.println("成功拉取最新更改（从 " + remoteBranch + " 分支）");
-                        return true;
-                    } else {
-                        System.out.println("拉取失败: " + result.getMergeResult());
-                        return false;
-                    }
-                } catch (Exception ex) {
-                    // 如果 master 分支失败，尝试 main 分支
-                    remoteBranch = "main";
-                    try {
-                        // 检出远程分支
-                        git.checkout()
-                            .setName(remoteBranch)
-                            .setCreateBranch(true)
-                            .setUpstreamMode(org.eclipse.jgit.api.CreateBranchCommand.SetupUpstreamMode.SET_UPSTREAM)
-                            .setStartPoint("origin/" + remoteBranch)
-                            .call();
-                        
-                        // 拉取更新
-                        PullResult result = git.pull()
-                            .setCredentialsProvider(credentialsProvider)
-                            .call();
-                            
-                        if (result.isSuccessful()) {
-                            System.out.println("成功拉取最新更改（从 " + remoteBranch + " 分支）");
-                            return true;
-                        } else {
-                            System.out.println("拉取失败: " + result.getMergeResult());
-                            return false;
-                        }
-                    } catch (Exception mainEx) {
-                        System.err.println("无法检出 master 或 main 分支: " + mainEx.getMessage());
-                        return false;
-                    }
+                System.err.println("RefNotAdvertisedException: " + e.getMessage());
+            } catch (org.eclipse.jgit.api.errors.TransportException e) {
+                System.err.println("Git传输异常: " + e.getMessage());
+                System.err.println("这通常是由于网络连接问题或认证失败导致的");
+                // 尝试提供更具体的解决方案
+                String remoteUrlCheck = AppConfig.getProperty("git.remote.url", "");
+                if (remoteUrlCheck.contains("github.com")) {
+                    System.err.println("GitHub连接问题可能的原因:");
+                    System.err.println("1. 网络连接问题");
+                    System.err.println("2. GitHub访问限制（特别是在中国地区）");
+                    System.err.println("3. 认证凭据不正确");
+                    System.err.println("4. 需要配置代理服务器");
                 }
+                return false;
             }
-                
+            
+            // 如果执行到这里，说明前面的异常处理都没有覆盖到的情况
+            return false;
         } catch (Exception e) {
             System.err.println("拉取更改失败: " + e.getMessage());
             e.printStackTrace();
@@ -255,7 +211,7 @@ public class GitUtils {
                 }
             }
             
-            Iterable<org.eclipse.jgit.transport.PushResult> pushResults = pushCommand.call();
+            Iterable<org.eclipse.jgit.transport.PushResult> pushResults = pushCommand.setTimeout(60).call();
             for (org.eclipse.jgit.transport.PushResult pushResult : pushResults) {
                 for (org.eclipse.jgit.transport.RemoteRefUpdate refUpdate : pushResult.getRemoteUpdates()) {
                     if (refUpdate.getStatus() != org.eclipse.jgit.transport.RemoteRefUpdate.Status.OK) {
@@ -278,6 +234,10 @@ public class GitUtils {
             return true;
         } catch (GitAPIException e) {
             System.err.println("推送更改失败: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        } catch (Exception e) {
+            System.err.println("推送更改时发生未知错误: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
