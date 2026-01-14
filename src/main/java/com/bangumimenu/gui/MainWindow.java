@@ -68,7 +68,8 @@ public class MainWindow extends JFrame {
                     SwingUtilities.invokeLater(() -> {
                         allBangumis = JsonUtils.readBangumiList("/bangumi.json");
                         currentBangumiList = JsonUtils.readBangumiList("/current_bangumi.json");
-                        updateBangumiLists();
+                        updateBangumiLists(); // 刷新列表显示
+                        updateCurrentBangumiDisplay(); // 刷新当前观看显示
                         JOptionPane.showMessageDialog(this, "数据同步成功！", "信息", JOptionPane.INFORMATION_MESSAGE);
                     });
                 } else {
@@ -180,10 +181,15 @@ public class MainWindow extends JFrame {
         // 更新列表显示
         if (unwatchedList != null) {
             unwatchedList.setModel(createUnwatchedModel());
+            unwatchedList.clearSelection(); // 清除选择，避免选择不存在的项目
         }
         if (watchedList != null) {
             watchedList.setModel(createWatchedModel());
+            watchedList.clearSelection(); // 清除选择，避免选择不存在的项目
         }
+        
+        // 清除详情显示区，避免显示已删除项目的残留信息
+        bangumiDetailsArea.setText("");
         
         // 更新当前观看显示
         updateCurrentBangumiDisplay();
@@ -447,6 +453,10 @@ public class MainWindow extends JFrame {
             // 保存到文件
             String bangumiJsonPath = System.getProperty("user.dir") + "/src/main/resources/bangumi.json";
             JsonUtils.writeBangumiList(allBangumis, bangumiJsonPath);
+            
+            // 保存当前观看列表（以防万一）
+            String currentBangumiJsonPath = System.getProperty("user.dir") + "/src/main/resources/current_bangumi.json";
+            JsonUtils.writeBangumiList(currentBangumiList, currentBangumiJsonPath);
             
             // 推送更改到远程仓库
             if (AppConfig.getBooleanProperty("git.enabled", true)) {
