@@ -73,7 +73,9 @@ public class MainWindow extends JFrame {
                         JOptionPane.showMessageDialog(this, "数据同步成功！", "信息", JOptionPane.INFORMATION_MESSAGE);
                     });
                 } else {
-                    JOptionPane.showMessageDialog(this, "数据同步失败，请检查网络连接和远程仓库设置", "警告", JOptionPane.WARNING_MESSAGE);
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(this, "数据同步失败，请检查网络连接和远程仓库设置", "警告", JOptionPane.WARNING_MESSAGE);
+                    });
                 }
             });
             syncThread.start();
@@ -182,10 +184,12 @@ public class MainWindow extends JFrame {
         if (unwatchedList != null) {
             unwatchedList.setModel(createUnwatchedModel());
             unwatchedList.clearSelection(); // 清除选择，避免选择不存在的项目
+            unwatchedList.updateUI(); // 强制更新UI
         }
         if (watchedList != null) {
             watchedList.setModel(createWatchedModel());
             watchedList.clearSelection(); // 清除选择，避免选择不存在的项目
+            watchedList.updateUI(); // 强制更新UI
         }
         
         // 清除详情显示区，避免显示已删除项目的残留信息
@@ -193,6 +197,12 @@ public class MainWindow extends JFrame {
         
         // 更新当前观看显示
         updateCurrentBangumiDisplay();
+        
+        // 强制UI组件重绘以确保更新
+        if (mainPanel != null) {
+            mainPanel.revalidate();
+            mainPanel.repaint();
+        }
     }
     
     private void updateCurrentBangumiDisplay() {
