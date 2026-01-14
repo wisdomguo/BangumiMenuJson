@@ -95,31 +95,112 @@ public class GitUtils {
                 return false;
             }
             
-            // 尝试拉取默认分支
+            // 设置Git配置以改善网络连接
+            git.getRepository().getConfig().setInt("http", null, "postBuffer", 524288000); // 设置POST缓冲区为500MB
+            git.getRepository().getConfig().setInt("http", null, "timeout", 60); // 设置HTTP超时为60秒
             try {
-                // 设置Git配置以改善网络连接
-                git.getRepository().getConfig().setInt("http", null, "postBuffer", 524288000); // 设置POST缓冲区为500MB
-                git.getRepository().getConfig().setInt("http", null, "timeout", 60); // 设置HTTP超时为60秒
-                try {
-                    git.getRepository().getConfig().save();
-                } catch (IOException e) {
-                    System.err.println("保存Git配置失败: " + e.getMessage());
-                }
-                
-                PullResult result = git.pull()
+                git.getRepository().getConfig().save();
+            } catch (IOException e) {
+                System.err.println("保存Git配置失败: " + e.getMessage());
+            }
+            
+            // 先尝试拉取默认分支
+            PullResult result = null;
+            try {
+                result = git.pull()
                     .setCredentialsProvider(credentialsProvider)
                     .setTimeout(120) // 设置120秒超时
                     .call();
-                    
-                if (result.isSuccessful()) {
-                    System.out.println("成功拉取最新更改");
-                    return true;
-                } else {
-                    System.out.println("拉取失败: " + result.getMergeResult());
-                    return false;
-                }
             } catch (org.eclipse.jgit.api.errors.RefNotAdvertisedException e) {
                 System.err.println("RefNotAdvertisedException: " + e.getMessage());
+                System.err.println("远程仓库未公布分支引用，尝试显式指定分支");
+                
+                // 先获取远程分支信息
+                try {
+                    org.eclipse.jgit.api.FetchCommand fetch = git.fetch();
+                    fetch.setCredentialsProvider(credentialsProvider);
+                    fetch.call();
+                    
+                    // 获取远程仓库的HEAD引用以确定默认分支
+                    org.eclipse.jgit.lib.Ref HEAD = git.getRepository().findRef("HEAD");
+                    String defaultBranch = "main"; // 默认假设为main分支
+                    
+                    if (HEAD != null && HEAD.getTarget() != null) {
+                        String headTarget = HEAD.getTarget().getName();
+                        // 从类似 "refs/remotes/origin/main" 提取分支名
+                        if (headTarget.contains("refs/remotes/origin/")) {
+                            defaultBranch = headTarget.substring(headTarget.lastIndexOf('/') + 1);
+                        }
+                    }
+                    
+                    // 尝试获取远程仓库的默认分支信息
+                    java.util.List<org.eclipse.jgit.lib.Ref> remoteRefs = git.branchList()
+                        .setListMode(org.eclipse.jgit.api.ListBranchCommand.ListMode.REMOTE)
+                        .call();
+                    
+                    // 检查远程仓库的默认分支
+                    java.util.List<String> possibleDefaultBranches = java.util.Arrays.asList(
+                        "main", "master", "develop", "trunk", "default"
+                    );
+                    
+                    String actualDefaultBranch = null;
+                    for (String branch : possibleDefaultBranches) {
+                        for (org.eclipse.jgit.lib.Ref ref : remoteRefs) {
+                            if (ref.getName().equals("refs/remotes/origin/" + branch)) {
+                                actualDefaultBranch = branch;
+                                break;
+                            }
+                        }
+                        if (actualDefaultBranch != null) {
+                            break;
+                        }
+                    }
+                    
+                    if (actualDefaultBranch != null) {
+                        System.out.println("检测到远程默认分支: " + actualDefaultBranch + ", 正在拉取...");
+                        result = git.pull()
+                            .setCredentialsProvider(credentialsProvider)
+                            .setTimeout(120)
+                            .call();
+                        System.out.println("成功拉取最新更改（" + actualDefaultBranch + "分支）");
+                    } else {
+                        // 如果以上方法都失败，尝试获取远程仓库的第一个分支
+                        if (!remoteRefs.isEmpty()) {
+                            // 获取第一个有效的远程分支
+                            String firstBranch = null;
+                            for (org.eclipse.jgit.lib.Ref ref : remoteRefs) {
+                                String branchName = ref.getName();
+                                if (branchName.startsWith("refs/remotes/origin/")) {
+                                    firstBranch = branchName.substring("refs/remotes/origin/".length());
+                                    // 排除HEAD引用，通常形如 refs/remotes/origin/HEAD -> origin/main
+                                    if (!firstBranch.equals("HEAD")) {
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            if (firstBranch != null) {
+                                System.out.println("检测到远程分支: " + firstBranch + ", 正在拉取...");
+                                result = git.pull()
+                                    .setCredentialsProvider(credentialsProvider)
+                                    .setTimeout(120)
+                                    .call();
+                                System.out.println("成功拉取最新更改（" + firstBranch + "分支）");
+                            } else {
+                                System.err.println("无法找到任何远程分支");
+                                return false;
+                            }
+                        } else {
+                            System.err.println("远程仓库没有任何分支");
+                            return false;
+                        }
+                    }
+                } catch (Exception branchEx) {
+                    System.err.println("无法从远程仓库拉取分支信息: " + branchEx.getMessage());
+                    System.err.println("错误类型: " + branchEx.getClass().getSimpleName());
+                    branchEx.printStackTrace();
+                    return false;
+                }
             } catch (org.eclipse.jgit.api.errors.TransportException e) {
                 System.err.println("Git传输异常: " + e.getMessage());
                 System.err.println("这通常是由于网络连接问题或认证失败导致的");
@@ -134,9 +215,17 @@ public class GitUtils {
                 }
                 return false;
             }
-            
-            // 如果执行到这里，说明前面的异常处理都没有覆盖到的情况
-            return false;
+                
+            if (result != null && result.isSuccessful()) {
+                System.out.println("成功拉取最新更改");
+                return true;
+            } else if (result != null) {
+                System.out.println("拉取失败: " + result.getMergeResult());
+                return false;
+            } else {
+                System.err.println("拉取操作返回null结果");
+                return false;
+            }
         } catch (Exception e) {
             System.err.println("拉取更改失败: " + e.getMessage());
             e.printStackTrace();

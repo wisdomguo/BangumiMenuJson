@@ -1,8 +1,8 @@
-D:\myproject\BangumiMenu\src\main\java\com\bangumimenu\gui\MainWindow.java
-D:\myproject\BangumiMenu\src\main\java\com\bangumimenu\entity\Bangumi.java
-D:\myproject\BangumiMenu\src\main\java\com\bangumimenu\BangumiMenuApp.java
-D:\myproject\BangumiMenu\src\main\java\com\bangumimenu\utils\GuiUtils.java
-D:\myproject\BangumiMenu\src\main\java\com\bangumimenu\utils\GitUtils.java
-D:\myproject\BangumiMenu\src\main\java\com\bangumimenu\utils\JsonUtils.java
-D:\myproject\BangumiMenu\src\main\java\com\bangumimenu\config\AppConfig.java
-D:\myproject\BangumiMenu\src\main\java\com\bangumimenu\gui\GitConfigDialog.java
+D:\project\my\BangumiMenuJson\src\main\java\com\bangumimenu\config\AppConfig.java
+D:\project\my\BangumiMenuJson\src\main\java\com\bangumimenu\BangumiMenuApp.java
+D:\project\my\BangumiMenuJson\src\main\java\com\bangumimenu\utils\GuiUtils.java
+D:\project\my\BangumiMenuJson\src\main\java\com\bangumimenu\entity\Bangumi.java
+D:\project\my\BangumiMenuJson\src\main\java\com\bangumimenu\gui\MainWindow.java
+D:\project\my\BangumiMenuJson\src\main\java\com\bangumimenu\gui\GitConfigDialog.java
+D:\project\my\BangumiMenuJson\src\main\java\com\bangumimenu\utils\JsonUtils.java
+D:\project\my\BangumiMenuJson\src\main\java\com\bangumimenu\utils\GitUtils.java

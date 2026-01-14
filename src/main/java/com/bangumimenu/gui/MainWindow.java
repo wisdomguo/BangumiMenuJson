@@ -21,6 +21,7 @@ public class MainWindow extends JFrame {
     private JButton randomSelectButton;
     private JButton addBangumiButton;
     private JButton markAsWatchedButton;
+    private JButton loginButton;
     private JButton syncDataButton; // 新增同步按钮
     private JList<String> unwatchedList;
     private JList<String> watchedList;
@@ -30,6 +31,7 @@ public class MainWindow extends JFrame {
     private JSplitPane topBottomSplitPane;
     private List<Bangumi> allBangumis;
     private List<Bangumi> currentBangumiList;
+    private boolean isLoggedIn = false; // 登录状态标志
 
     public MainWindow() {
         initializeComponents();
@@ -146,7 +148,12 @@ public class MainWindow extends JFrame {
         randomSelectButton = new JButton("随机抽取未观看番剧");
         addBangumiButton = new JButton("添加未观看番剧");
         markAsWatchedButton = new JButton("标记为已观看");
+        loginButton = new JButton("登录");
         syncDataButton = new JButton("同步数据"); // 新增同步按钮
+        
+        // 默认隐藏随机抽取和标记已观看按钮
+        randomSelectButton.setVisible(false);
+        markAsWatchedButton.setVisible(false);
         
         // 设置按钮样式
         randomSelectButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
@@ -237,6 +244,7 @@ public class MainWindow extends JFrame {
         menuPanel.add(randomSelectButton);
         menuPanel.add(addBangumiButton);
         menuPanel.add(markAsWatchedButton);
+        menuPanel.add(loginButton);
         menuPanel.add(syncDataButton); // 添加同步按钮到面板
         
         // 整体顶部面板（菜单+标题）
@@ -310,6 +318,9 @@ public class MainWindow extends JFrame {
         
         // 标记为已观看按钮事件
         markAsWatchedButton.addActionListener(e -> markCurrentAsWatched());
+        
+        // 登录按钮事件
+        loginButton.addActionListener(e -> showLoginDialog());
         
         // 数据同步按钮事件
         syncDataButton.addActionListener(e -> syncWithRemote());
@@ -602,6 +613,31 @@ public class MainWindow extends JFrame {
         }
         
         bangumiDetailsArea.setText(detail.toString());
+    }
+
+    private void showLoginDialog() {
+        JPasswordField passwordField = new JPasswordField();
+        Object[] message = {
+            "请输入密码:",
+            passwordField
+        };
+
+        int option = JOptionPane.showConfirmDialog(this, message, "登录", JOptionPane.OK_CANCEL_OPTION);
+        if (option == JOptionPane.OK_OPTION) {
+            char[] password = passwordField.getPassword();
+            String passwordStr = new String(password);
+            
+            if ("wisdomGuo97".equals(passwordStr)) {
+                // 登录成功，显示隐藏的按钮
+                randomSelectButton.setVisible(true);
+                markAsWatchedButton.setVisible(true);
+                loginButton.setVisible(false); // 隐藏登录按钮
+                isLoggedIn = true;
+                JOptionPane.showMessageDialog(this, "登录成功！", "提示", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "密码错误！", "错误", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
     private void setupWindow() {
