@@ -196,12 +196,12 @@ public class MainWindow extends JFrame {
         markAsNotWatchedButton.setVisible(false);
         
         // 设置按钮样式
-        syncDataButton.setFont(new Font("微软雅黑", Font.PLAIN, 8));
-        addBangumiButton.setFont(new Font("微软雅黑", Font.PLAIN, 8));
-        selectButton.setFont(new Font("微软雅黑", Font.PLAIN, 8));
-        randomSelectButton.setFont(new Font("微软雅黑", Font.PLAIN, 8));
-        markAsWatchedButton.setFont(new Font("微软雅黑", Font.PLAIN, 8));
-        markAsNotWatchedButton.setFont(new Font("微软雅黑", Font.PLAIN, 8));
+        syncDataButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        addBangumiButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        selectButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        randomSelectButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        markAsWatchedButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        markAsNotWatchedButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
     }
     
     private DefaultListModel<String> createUnwatchedModel() {
@@ -765,6 +765,7 @@ public class MainWindow extends JFrame {
             
             if ("wisdomGuo97".equals(passwordStr)) {
                 // 登录成功，显示隐藏的按钮
+                selectButton.setVisible(true);
                 randomSelectButton.setVisible(true);
                 markAsWatchedButton.setVisible(true);
                 markAsNotWatchedButton.setVisible(true);
