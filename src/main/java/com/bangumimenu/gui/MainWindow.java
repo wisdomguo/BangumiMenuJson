@@ -18,11 +18,12 @@ import java.util.Random;
 public class MainWindow extends JFrame {
     private JPanel mainPanel;
     private JLabel titleLabel;
-    private JButton randomSelectButton;
-    private JButton addBangumiButton;
-    private JButton markAsWatchedButton;
-    private JButton loginButton;
     private JButton syncDataButton; // 新增同步按钮
+    private JButton addBangumiButton;
+    private JButton randomSelectButton;
+    private JButton markAsWatchedButton;
+    private JButton markAsNotWatchedButton;
+    private JButton loginButton;
     private JList<String> unwatchedList;
     private JList<String> watchedList;
     private JTextArea currentBangumiDisplay;
@@ -179,21 +180,24 @@ public class MainWindow extends JFrame {
     }
     
     private void createMenuButtons() {
-        randomSelectButton = new JButton("随机抽取未观看番剧");
+        syncDataButton = new JButton("同步数据");
         addBangumiButton = new JButton("添加未观看番剧");
+        randomSelectButton = new JButton("随机抽取未观看番剧");
         markAsWatchedButton = new JButton("标记为已观看");
+        markAsNotWatchedButton = new JButton("标记为未观看");
         loginButton = new JButton("登录");
-        syncDataButton = new JButton("同步数据"); // 新增同步按钮
         
         // 默认隐藏随机抽取和标记已观看按钮
         randomSelectButton.setVisible(false);
         markAsWatchedButton.setVisible(false);
+        markAsNotWatchedButton.setVisible(false);
         
         // 设置按钮样式
-        randomSelectButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        syncDataButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         addBangumiButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        randomSelectButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         markAsWatchedButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
-        syncDataButton.setFont(new Font("微软雅黑", Font.PLAIN, 12)); // 新增同步按钮样式
+        markAsNotWatchedButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
     }
     
     private DefaultListModel<String> createUnwatchedModel() {
@@ -275,11 +279,12 @@ public class MainWindow extends JFrame {
         
         // 菜单按钮面板
         JPanel menuPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        menuPanel.add(randomSelectButton);
-        menuPanel.add(addBangumiButton);
-        menuPanel.add(markAsWatchedButton);
-        menuPanel.add(loginButton);
         menuPanel.add(syncDataButton); // 添加同步按钮到面板
+        menuPanel.add(addBangumiButton);
+        menuPanel.add(randomSelectButton);
+        menuPanel.add(markAsWatchedButton);
+        menuPanel.add(markAsNotWatchedButton);
+        menuPanel.add(loginButton);
         
         // 整体顶部面板（菜单+标题）
         JPanel topPanel = new JPanel(new BorderLayout());
@@ -343,21 +348,24 @@ public class MainWindow extends JFrame {
                 displaySelectedBangedumiDetailsForWatched(watchedList.getSelectedIndex());
             }
         });
+
+        // 数据同步按钮事件
+        syncDataButton.addActionListener(e -> syncWithRemote());
+
+        // 添加番剧按钮事件
+        addBangumiButton.addActionListener(e -> openAddBangumiDialog());
         
         // 随机抽取按钮事件
         randomSelectButton.addActionListener(e -> randomSelectUnwatchedBangumi());
         
-        // 添加番剧按钮事件
-        addBangumiButton.addActionListener(e -> openAddBangumiDialog());
-        
         // 标记为已观看按钮事件
         markAsWatchedButton.addActionListener(e -> markCurrentAsWatched());
+
+        // 标记为已观看按钮事件
+        markAsNotWatchedButton.addActionListener(e -> markCurrentAsNotWatched());
         
         // 登录按钮事件
         loginButton.addActionListener(e -> showLoginDialog());
-        
-        // 数据同步按钮事件
-        syncDataButton.addActionListener(e -> syncWithRemote());
     }
     
     private void randomSelectUnwatchedBangumi() {
@@ -566,6 +574,51 @@ public class MainWindow extends JFrame {
         JOptionPane.showMessageDialog(this, "已将 '" + current.getTitle() + "' 标记为已观看！", "提示", JOptionPane.INFORMATION_MESSAGE);
     }
 
+    private void markCurrentAsNotWatched() {
+        int selectedIndex = watchedList.getSelectedIndex();
+        if (selectedIndex == -1) {
+            JOptionPane.showMessageDialog(this, "未选择要修改的番剧", "提示", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        
+        // 获取已观看列表中选中的番剧
+        String selectedTitle = (String) watchedList.getModel().getElementAt(selectedIndex);
+        // 从allBangumis中找到对应的Bangumi对象
+        Bangumi current = null;
+        for (Bangumi bangumi : allBangumis) {
+            if ((bangumi.getTitle() + " (提议人: " + bangumi.getProposer() + ")").equals(selectedTitle)) {
+                current = bangumi;
+                break;
+            }
+        }
+        
+        if (current == null) {
+            JOptionPane.showMessageDialog(this, "未选择要修改的番剧", "提示", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // 在allBangumis中找到并更新该番剧的状态
+        for (int i = 0; i < allBangumis.size(); i++) {
+            Bangumi bangumi = allBangumis.get(i);
+            if (bangumi.getTitle().equals(current.getTitle())) {
+                bangumi.setWatched(false);
+                break;
+            }
+        }
+
+        // 保存到文件（使用用户目录）
+        JsonUtils.writeBangumiListToUserDir(allBangumis, "bangumi.json");
+
+        // 推送更改到远程仓库
+        if (AppConfig.getBooleanProperty("git.enabled", true)) {
+            pushToRemote();
+        }
+
+        // 更新显示
+        updateBangumiLists(); // 更新列表以反映更改
+        JOptionPane.showMessageDialog(this, "已将 '" + current.getTitle() + "' 标记为未观看！", "提示", JOptionPane.INFORMATION_MESSAGE);
+    }
+
     private void displaySelectedBangumiDetails(int index) {
         if (allBangumis != null && index >= 0) {
             // 找到未观看列表中的第index个元素
@@ -661,6 +714,7 @@ public class MainWindow extends JFrame {
                 // 登录成功，显示隐藏的按钮
                 randomSelectButton.setVisible(true);
                 markAsWatchedButton.setVisible(true);
+                markAsNotWatchedButton.setVisible(true);
                 loginButton.setVisible(false); // 隐藏登录按钮
                 isLoggedIn = true;
                 JOptionPane.showMessageDialog(this, "登录成功！", "提示", JOptionPane.INFORMATION_MESSAGE);
