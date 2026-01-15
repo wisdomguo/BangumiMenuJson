@@ -21,6 +21,7 @@ public class MainWindow extends JFrame {
     private JButton syncDataButton; // 新增同步按钮
     private JButton addBangumiButton;
     private JButton randomSelectButton;
+    private JButton selectButton;
     private JButton markAsWatchedButton;
     private JButton markAsNotWatchedButton;
     private JButton loginButton;
@@ -182,22 +183,25 @@ public class MainWindow extends JFrame {
     private void createMenuButtons() {
         syncDataButton = new JButton("同步数据");
         addBangumiButton = new JButton("添加未观看番剧");
+        selectButton = new JButton("标记为正在观看");
         randomSelectButton = new JButton("随机抽取未观看番剧");
         markAsWatchedButton = new JButton("标记为已观看");
         markAsNotWatchedButton = new JButton("标记为未观看");
         loginButton = new JButton("登录");
         
         // 默认隐藏随机抽取和标记已观看按钮
+        selectButton.setVisible(false);
         randomSelectButton.setVisible(false);
         markAsWatchedButton.setVisible(false);
         markAsNotWatchedButton.setVisible(false);
         
         // 设置按钮样式
-        syncDataButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
-        addBangumiButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
-        randomSelectButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
-        markAsWatchedButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
-        markAsNotWatchedButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        syncDataButton.setFont(new Font("微软雅黑", Font.PLAIN, 8));
+        addBangumiButton.setFont(new Font("微软雅黑", Font.PLAIN, 8));
+        selectButton.setFont(new Font("微软雅黑", Font.PLAIN, 8));
+        randomSelectButton.setFont(new Font("微软雅黑", Font.PLAIN, 8));
+        markAsWatchedButton.setFont(new Font("微软雅黑", Font.PLAIN, 8));
+        markAsNotWatchedButton.setFont(new Font("微软雅黑", Font.PLAIN, 8));
     }
     
     private DefaultListModel<String> createUnwatchedModel() {
@@ -281,6 +285,7 @@ public class MainWindow extends JFrame {
         JPanel menuPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         menuPanel.add(syncDataButton); // 添加同步按钮到面板
         menuPanel.add(addBangumiButton);
+        menuPanel.add(selectButton);
         menuPanel.add(randomSelectButton);
         menuPanel.add(markAsWatchedButton);
         menuPanel.add(markAsNotWatchedButton);
@@ -355,13 +360,16 @@ public class MainWindow extends JFrame {
         // 添加番剧按钮事件
         addBangumiButton.addActionListener(e -> openAddBangumiDialog());
         
+        // 选中观看按钮事件
+        selectButton.addActionListener(e -> selectUnwatchedBangumi());
+
         // 随机抽取按钮事件
         randomSelectButton.addActionListener(e -> randomSelectUnwatchedBangumi());
         
         // 标记为已观看按钮事件
         markAsWatchedButton.addActionListener(e -> markCurrentAsWatched());
 
-        // 标记为已观看按钮事件
+        // 标记为未观看按钮事件
         markAsNotWatchedButton.addActionListener(e -> markCurrentAsNotWatched());
         
         // 登录按钮事件
@@ -408,6 +416,51 @@ public class MainWindow extends JFrame {
         updateBangumiLists(); // 更新列表以反映更改
         
         JOptionPane.showMessageDialog(this, "已随机选择: " + selected.getTitle(), "随机选择结果", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void selectUnwatchedBangumi() {
+        int selectedIndex = unwatchedList.getSelectedIndex();
+        if (selectedIndex == -1) {
+            JOptionPane.showMessageDialog(this, "未选择要观看的番剧", "提示", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // 获取已观看列表中选中的番剧
+        String selectedTitle = (String) unwatchedList.getModel().getElementAt(selectedIndex);
+        // 从allBangumis中找到对应的Bangumi对象
+        Bangumi current = null;
+        for (Bangumi bangumi : allBangumis) {
+            if ((bangumi.getTitle() + " (提议人: " + bangumi.getProposer() + ")").equals(selectedTitle)) {
+                current = bangumi;
+                break;
+            }
+        }
+
+        if (current == null) {
+            JOptionPane.showMessageDialog(this, "未选择要修改的番剧", "提示", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // 设置为当前观看
+        if (currentBangumiList == null) {
+            currentBangumiList = new java.util.ArrayList<>();
+        }
+        currentBangumiList.clear();
+        currentBangumiList.add(current);
+
+        // 保存当前观看到文件（使用用户目录）
+        JsonUtils.writeBangumiListToUserDir(currentBangumiList, "current_bangumi.json");
+
+        // 推送更改到远程仓库
+        if (AppConfig.getBooleanProperty("git.enabled", true)) {
+            pushToRemote();
+        }
+
+        // 更新显示
+        updateCurrentBangumiDisplay();
+        updateBangumiLists(); // 更新列表以反映更改
+
+        JOptionPane.showMessageDialog(this, "已选择: " + current.getTitle(), "提示", JOptionPane.INFORMATION_MESSAGE);
     }
     
     private void openAddBangumiDialog() {
