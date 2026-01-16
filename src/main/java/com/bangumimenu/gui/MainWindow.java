@@ -39,7 +39,12 @@ public class MainWindow extends JFrame {
     private List<Bangumi> currentBangumiList;
     private boolean isLoggedIn = false; // 登录状态标志
 
+    // 创建等待对话框
+    private JDialog progressDialog;
+
+
     public MainWindow() {
+        setProgressDialog();
         initializeComponents();
         setupLayout();
         setupEventHandlers();
@@ -74,25 +79,28 @@ public class MainWindow extends JFrame {
 
         // 在后台线程中执行强制拉取
         SwingUtilities.invokeLater(() -> {
+
             Thread syncThread = new Thread(() -> {
                 System.out.println("正在强制从远程仓库拉取最新内容进行覆盖...");
                 boolean success = GitUtils.forcePullChanges();
-                if (success) {
-                    // 重新加载数据
-                    SwingUtilities.invokeLater(() -> {
+
+                // 同步完成后关闭进度对话框
+                SwingUtilities.invokeLater(() -> {
+                    progressDialog.dispose(); // 关闭进度对话框
+                    if (success) {
+                        // 重新加载数据
                         allBangumis = JsonUtils.readBangumiList("/bangumi.json");
                         currentBangumiList = JsonUtils.readBangumiList("/current_bangumi.json");
                         updateBangumiLists(); // 刷新列表显示
                         updateCurrentBangumiDisplay(); // 刷新当前观看显示
                         System.out.println("强制拉取和数据更新成功！");
-                    });
-                } else {
-                    SwingUtilities.invokeLater(() -> {
+                    } else {
                         System.err.println("强制拉取失败，请检查网络连接和远程仓库设置");
-                    });
-                }
+                    }
+                });
             });
             syncThread.start();
+            progressDialog.setVisible(true); // 显示进度对话框
         });
     }
 
@@ -113,14 +121,17 @@ public class MainWindow extends JFrame {
                         updateBangumiLists(); // 刷新列表显示
                         updateCurrentBangumiDisplay(); // 刷新当前观看显示
                         JOptionPane.showMessageDialog(this, "数据同步成功！", "信息", JOptionPane.INFORMATION_MESSAGE);
+                        progressDialog.dispose(); // 关闭进度对话框
                     });
                 } else {
                     SwingUtilities.invokeLater(() -> {
                         JOptionPane.showMessageDialog(this, "数据同步失败，请检查网络连接和远程仓库设置", "警告", JOptionPane.WARNING_MESSAGE);
+                        progressDialog.dispose(); // 关闭进度对话框
                     });
                 }
             });
             syncThread.start();
+            progressDialog.setVisible(true); // 显示进度对话框
         });
     }
 
@@ -139,8 +150,10 @@ public class MainWindow extends JFrame {
                 } else {
                     JOptionPane.showMessageDialog(this, "数据推送失败，请检查网络连接和认证信息", "警告", JOptionPane.WARNING_MESSAGE);
                 }
+                progressDialog.dispose(); // 关闭进度对话框
             });
             pushThread.start();
+            progressDialog.setVisible(true); // 显示进度对话框
         });
     }
 
@@ -179,6 +192,7 @@ public class MainWindow extends JFrame {
 
         // 更新列表和显示
         updateCurrentBangumiDisplay();
+        updateBangumiLists();
 
         // 设置字体
         titleLabel.setFont(new Font("微软雅黑", Font.BOLD, 18));
@@ -401,7 +415,10 @@ public class MainWindow extends JFrame {
     }
 
     private void randomSelectUnwatchedBangumi() {
-        if (allBangumis == null) return;
+        System.out.println("随机抽取未观看的番剧");
+        if (allBangumis == null) {
+            return;
+        }
 
         // 获取所有未观看的番剧
         java.util.List<Bangumi> unwatchedBangumis = new java.util.ArrayList<>();
@@ -439,7 +456,7 @@ public class MainWindow extends JFrame {
             if (randomPoint < accumulatedWeight) {  // 注意这里是小于号，因为randomPoint是0到totalWeight-1的值
                 selected = bangumi;
                 // 显示选中的番剧
-                return;
+                break;
             }
         }
 
@@ -454,6 +471,7 @@ public class MainWindow extends JFrame {
         if (currentBangumiList == null) {
             currentBangumiList = new java.util.ArrayList<>();
         }
+        System.out.println("正在设置......");
         currentBangumiList.clear();
         currentBangumiList.add(selected);
 
@@ -662,6 +680,7 @@ public class MainWindow extends JFrame {
 
             // 更新列表显示
             updateBangumiLists();
+            updateCurrentBangumiDisplay();
 
             JOptionPane.showMessageDialog(dialog, "番剧添加成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
             dialog.dispose();
@@ -699,7 +718,7 @@ public class MainWindow extends JFrame {
             return;
         }
 
-        if (current.getWatcher().indexOf(USER_NAME) != -1) {
+        if (current.getWatcher() != null && current.getWatcher().indexOf(USER_NAME) != -1) {
             JOptionPane.showMessageDialog(this, "您已提交过想要观看该番剧了", "提示", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
@@ -710,7 +729,11 @@ public class MainWindow extends JFrame {
             Bangumi bangumi = allBangumis.get(i);
             if (bangumi.getTitle().equals(current.getTitle())) {
                 bangumi.setVotes(bangumi.getVotes() + 1);
-                bangumi.setWatcher(bangumi.getWatcher() + USER_NAME + ",");
+                if (bangumi.getWatcher() != null && !bangumi.getWatcher().equals("")) {
+                    bangumi.setWatcher(bangumi.getWatcher() + "," + USER_NAME);
+                } else {
+                    bangumi.setWatcher(USER_NAME);
+                }
                 break;
             }
         }
@@ -728,6 +751,7 @@ public class MainWindow extends JFrame {
 
         // 更新列表显示
         updateBangumiLists();
+        updateCurrentBangumiDisplay();
 
         JOptionPane.showMessageDialog(this, "已提交想要观看！", "成功", JOptionPane.INFORMATION_MESSAGE);
 
@@ -843,7 +867,7 @@ public class MainWindow extends JFrame {
 
         // 按钮面板
         JPanel buttonPanel = new JPanel(new FlowLayout());
-        JButton addButton = new JButton("添加");
+        JButton addButton = new JButton("修改");
         JButton cancelButton = new JButton("取消");
 
         buttonPanel.add(addButton);
@@ -852,7 +876,7 @@ public class MainWindow extends JFrame {
         dialog.add(formPanel, BorderLayout.CENTER);
         dialog.add(buttonPanel, BorderLayout.SOUTH);
 
-        // 添加按钮事件
+        // 修改按钮事件
         Bangumi finalCurrent = current;
         addButton.addActionListener(e -> {
             // 获取表单数据
@@ -897,6 +921,7 @@ public class MainWindow extends JFrame {
 
             // 更新列表显示
             updateBangumiLists();
+            updateCurrentBangumiDisplay();
 
             JOptionPane.showMessageDialog(dialog, "番剧修改成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
             dialog.dispose();
@@ -939,7 +964,7 @@ public class MainWindow extends JFrame {
         allBangumis.remove(current);
 
         // 从当前观看列表中移除
-        if (currentBangumiList.get(0).getTitle().equals(current.getTitle())) {
+        if (currentBangumiList.size() > 0 && currentBangumiList.get(0).getTitle().equals(current.getTitle())) {
             currentBangumiList.clear();
         }
 
@@ -1115,9 +1140,9 @@ public class MainWindow extends JFrame {
             detail.append("观看时间: 未设定\n");
         }
         if (bangumi.getWatcher() != null) {
-            detail.append("观看人: ").append(bangumi.getWatcher()).append("\n");
+            detail.append("想要观看: ").append(bangumi.getWatcher()).append("\n");
         } else {
-            detail.append("观看人: 未设定\n");
+            detail.append("想要观看: 未设定\n");
         }
 
         bangumiDetailsArea.setText(detail.toString());
@@ -1160,6 +1185,25 @@ public class MainWindow extends JFrame {
                 JOptionPane.showMessageDialog(this, "密码错误！", "错误", JOptionPane.ERROR_MESSAGE);
             }
         }
+    }
+
+    private void setProgressDialog() {
+        progressDialog = new JDialog(this, "同步中...", Dialog.ModalityType.APPLICATION_MODAL);
+        progressDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE); // 禁止手动关闭
+
+        // 设置对话框内容
+        JPanel panel = new JPanel(new BorderLayout());
+        JLabel label = new JLabel("正在强制从远程仓库拉取最新内容进行覆盖...", JLabel.CENTER);
+        JProgressBar progressBar = new JProgressBar();
+        progressBar.setIndeterminate(true); // 设置为不确定进度模式（转圈动画）
+
+        panel.add(label, BorderLayout.CENTER);
+        panel.add(progressBar, BorderLayout.SOUTH);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        progressDialog.add(panel);
+        progressDialog.setSize(300, 100);
+        progressDialog.setLocationRelativeTo(this); // 居中显示
     }
 
     private void setupWindow() {

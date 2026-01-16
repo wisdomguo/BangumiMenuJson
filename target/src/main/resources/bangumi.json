@@ -5,9 +5,10 @@
     "writer": "无",
     "original": "无",
     "director": "无",
-    "proposer": "无",
+    "proposer": "王巨硬",
     "watched": false,
-    "votes": 0
+    "votes": 1,
+    "watcher": "wisdom"
   },
   {
     "title": "fsf",
@@ -15,7 +16,7 @@
     "writer": "无",
     "original": "无",
     "director": "无",
-    "proposer": "无",
+    "proposer": "王巨硬",
     "watched": true,
     "votes": 0
   },
@@ -25,18 +26,18 @@
     "writer": "无",
     "original": "无",
     "director": "无",
-    "proposer": "无",
+    "proposer": "不知歸",
     "watched": true,
     "votes": 0
   },
   {
     "title": "葬送的芙莉莲",
-    "description": "芙莉莲第二季",
+    "description": "芙莉莲第一季",
     "writer": "",
     "original": "",
     "director": "",
-    "proposer": "ka",
-    "watched": false,
+    "proposer": "kiss·alter",
+    "watched": true,
     "votes": 0
   },
   {
@@ -47,7 +48,8 @@
     "director": "",
     "proposer": "皮皮",
     "watched": false,
-    "votes": 0
+    "votes": 1,
+    "watcher": "wisdom"
   },
   {
     "title": "辉夜大小姐想让我告白",
@@ -55,8 +57,63 @@
     "writer": "",
     "original": "赤坂明",
     "director": "",
-    "proposer": "ka",
+    "proposer": "kiss·alter",
     "watched": false,
+    "votes": 1,
+    "watcher": "wisdom"
+  },
+  {
+    "title": "mujica",
+    "description": "",
+    "writer": "",
+    "original": "",
+    "director": "",
+    "proposer": "王巨硬",
+    "watched": true,
     "votes": 0
+  },
+  {
+    "title": "就凭你也想讨伐魔王？",
+    "description": "克系真百合说是，画面有点穷",
+    "writer": "",
+    "original": "",
+    "director": "",
+    "proposer": "kiss·alter",
+    "watched": false,
+    "votes": 1,
+    "watcher": "wisdom"
+  },
+  {
+    "title": "相反的你和我",
+    "description": "校园恋爱喜剧",
+    "writer": "",
+    "original": "",
+    "director": "",
+    "proposer": "kiss·alter",
+    "watched": false,
+    "votes": 1,
+    "watcher": "wisdom"
+  },
+  {
+    "title": "判处勇者刑 惩罚勇者9004队刑务记录",
+    "description": "勇者刑，改编系构据说不太行",
+    "writer": "",
+    "original": "",
+    "director": "",
+    "proposer": "皮皮",
+    "watched": false,
+    "votes": 1,
+    "watcher": "wisdom"
+  },
+  {
+    "title": "葬送的芙莉莲第二季",
+    "description": "葬送的芙莉莲第二季",
+    "writer": "",
+    "original": "",
+    "director": "",
+    "proposer": "wisdom",
+    "watched": false,
+    "votes": 1,
+    "watcher": "wisdom"
   }
 ]
