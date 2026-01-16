@@ -7,10 +7,11 @@ import com.bangumimenu.utils.GitUtils;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
+
+import static com.bangumimenu.utils.UserDataSync.USER_NAME;
 
 /**
  * Bangumi Menu 主窗口类
@@ -18,8 +19,11 @@ import java.util.Random;
 public class MainWindow extends JFrame {
     private JPanel mainPanel;
     private JLabel titleLabel;
-    private JButton syncDataButton; // 新增同步按钮
+    private JButton syncDataButton;
+    private JButton wantWatchButton;
     private JButton addBangumiButton;
+    private JButton changeBangumiButton;
+    private JButton deleteBangumiButton;
     private JButton randomSelectButton;
     private JButton selectButton;
     private JButton markAsWatchedButton;
@@ -40,15 +44,15 @@ public class MainWindow extends JFrame {
         setupLayout();
         setupEventHandlers();
         setupWindow();
-        
+
         // 启动时立即初始化用户数据并强制从远程仓库拉取最新内容进行覆盖
         initializeUserDataAndForcePull();
     }
-    
+
     private void initializeUserDataAndForcePull() {
         // 首先初始化用户数据
         com.bangumimenu.utils.UserDataSync.initializeUserData();
-        
+
         if (AppConfig.getBooleanProperty("git.enabled", true)) {
             // 初始化Git仓库
             SwingUtilities.invokeLater(() -> {
@@ -59,7 +63,7 @@ public class MainWindow extends JFrame {
             });
         }
     }
-    
+
     /**
      * 强制从远程仓库拉取最新内容进行覆盖
      */
@@ -67,7 +71,7 @@ public class MainWindow extends JFrame {
         if (!AppConfig.getBooleanProperty("git.enabled", true)) {
             return;
         }
-        
+
         // 在后台线程中执行强制拉取
         SwingUtilities.invokeLater(() -> {
             Thread syncThread = new Thread(() -> {
@@ -91,12 +95,12 @@ public class MainWindow extends JFrame {
             syncThread.start();
         });
     }
-    
+
     private void syncWithRemote() {
         if (!AppConfig.getBooleanProperty("git.enabled", true)) {
             return;
         }
-        
+
         // 在后台线程中执行同步
         SwingUtilities.invokeLater(() -> {
             Thread syncThread = new Thread(() -> {
@@ -119,12 +123,12 @@ public class MainWindow extends JFrame {
             syncThread.start();
         });
     }
-    
+
     private void pushToRemote() {
         if (!AppConfig.getBooleanProperty("git.enabled", true)) {
             return;
         }
-        
+
         // 使用内置账户信息推送
         SwingUtilities.invokeLater(() -> {
             Thread pushThread = new Thread(() -> {
@@ -143,14 +147,14 @@ public class MainWindow extends JFrame {
     private void initializeComponents() {
         mainPanel = new JPanel(new BorderLayout());
         titleLabel = new JLabel("Bangumi Menu 系统", SwingConstants.CENTER);
-        
+
         // 创建菜单按钮
         createMenuButtons();
-        
+
         // 加载数据
         allBangumis = JsonUtils.readBangumiList("/bangumi.json");
         currentBangumiList = JsonUtils.readBangumiList("/current_bangumi.json");
-        
+
         // 创建显示区域
         currentBangumiDisplay = new JTextArea();
         currentBangumiDisplay.setEditable(false);
@@ -158,52 +162,60 @@ public class MainWindow extends JFrame {
         currentBangumiDisplay.setLineWrap(true); // 启用自动换行
         currentBangumiDisplay.setWrapStyleWord(true); // 设置换行方式
         currentBangumiDisplay.setMargin(new Insets(10, 10, 10, 10)); // 设置内边距，改善视觉效果
-        
+
         bangumiDetailsArea = new JTextArea();
         bangumiDetailsArea.setEditable(false);
         bangumiDetailsArea.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         bangumiDetailsArea.setLineWrap(true); // 启用自动换行
         bangumiDetailsArea.setWrapStyleWord(true); // 设置换行方式
-        
+
         // 创建左右列表
         unwatchedList = new JList<>(createUnwatchedModel());
         watchedList = new JList<>(createWatchedModel());
-        
+
         // 设置列表样式
         unwatchedList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         watchedList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        
+
         // 更新列表和显示
         updateCurrentBangumiDisplay();
-        
+
         // 设置字体
         titleLabel.setFont(new Font("微软雅黑", Font.BOLD, 18));
     }
-    
+
     private void createMenuButtons() {
         syncDataButton = new JButton("同步数据");
         addBangumiButton = new JButton("添加未观看番剧");
+        wantWatchButton = new JButton("想要观看");
+        changeBangumiButton = new JButton("修改未观看番剧");
+        deleteBangumiButton = new JButton("删除未观看番剧");
         selectButton = new JButton("标记为正在观看");
         randomSelectButton = new JButton("随机抽取未观看番剧");
         markAsWatchedButton = new JButton("标记为已观看");
         markAsNotWatchedButton = new JButton("标记为未观看");
         loginButton = new JButton("登录");
-        
+
         // 默认隐藏随机抽取和标记已观看按钮
         selectButton.setVisible(false);
         randomSelectButton.setVisible(false);
+        changeBangumiButton.setVisible(false);
+        deleteBangumiButton.setVisible(false);
         markAsWatchedButton.setVisible(false);
         markAsNotWatchedButton.setVisible(false);
-        
+
         // 设置按钮样式
         syncDataButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         addBangumiButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        wantWatchButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        changeBangumiButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        deleteBangumiButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         selectButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         randomSelectButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         markAsWatchedButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         markAsNotWatchedButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
     }
-    
+
     private DefaultListModel<String> createUnwatchedModel() {
         DefaultListModel<String> model = new DefaultListModel<>();
         if (allBangumis != null) {
@@ -215,7 +227,7 @@ public class MainWindow extends JFrame {
         }
         return model;
     }
-    
+
     private DefaultListModel<String> createWatchedModel() {
         DefaultListModel<String> model = new DefaultListModel<>();
         if (allBangumis != null) {
@@ -227,7 +239,7 @@ public class MainWindow extends JFrame {
         }
         return model;
     }
-    
+
     private void updateBangumiLists() {
         // 更新列表显示
         if (unwatchedList != null) {
@@ -240,20 +252,20 @@ public class MainWindow extends JFrame {
             watchedList.clearSelection(); // 清除选择，避免选择不存在的项目
             watchedList.updateUI(); // 强制更新UI
         }
-        
+
         // 清除详情显示区，避免显示已删除项目的残留信息
         bangumiDetailsArea.setText("");
-        
+
         // 更新当前观看显示
         updateCurrentBangumiDisplay();
-        
+
         // 强制UI组件重绘以确保更新
         if (mainPanel != null) {
             mainPanel.revalidate();
             mainPanel.repaint();
         }
     }
-    
+
     private void updateCurrentBangumiDisplay() {
         currentBangumiDisplay.setText("");
         if (currentBangumiList != null && !currentBangumiList.isEmpty()) {
@@ -280,37 +292,40 @@ public class MainWindow extends JFrame {
 
     private void setupLayout() {
         setLayout(new BorderLayout());
-        
+
         // 菜单按钮面板
         JPanel menuPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         menuPanel.add(syncDataButton); // 添加同步按钮到面板
         menuPanel.add(addBangumiButton);
+        menuPanel.add(wantWatchButton);
+        menuPanel.add(changeBangumiButton);
+        menuPanel.add(deleteBangumiButton);
         menuPanel.add(selectButton);
         menuPanel.add(randomSelectButton);
         menuPanel.add(markAsWatchedButton);
         menuPanel.add(markAsNotWatchedButton);
         menuPanel.add(loginButton);
-        
+
         // 整体顶部面板（菜单+标题）
         JPanel topPanel = new JPanel(new BorderLayout());
         topPanel.add(menuPanel, BorderLayout.NORTH);
         topPanel.add(titleLabel, BorderLayout.CENTER);
-        
+
         add(topPanel, BorderLayout.NORTH);
-        
+
         // 左侧 - 未观看列表
         JScrollPane unwatchedScrollPane = new JScrollPane(unwatchedList);
         unwatchedScrollPane.setBorder(BorderFactory.createTitledBorder("未观看的番剧"));
-        
+
         // 中间上半部分 - 当前观看显示
         JScrollPane currentBangumiScrollPane = new JScrollPane(currentBangumiDisplay);
         currentBangumiScrollPane.setBorder(BorderFactory.createTitledBorder("当前观看"));
         currentBangumiScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        
+
         // 中间下半部分 - 详情显示
         JScrollPane detailsScrollPane = new JScrollPane(bangumiDetailsArea);
         detailsScrollPane.setBorder(BorderFactory.createTitledBorder("番剧详情"));
-        
+
         // 中间垂直分割面板 - 包含当前观看和详情
         topBottomSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, currentBangumiScrollPane, detailsScrollPane);
         topBottomSplitPane.setDividerLocation(0.45); // 给当前观看区域稍多一点空间
@@ -321,7 +336,7 @@ public class MainWindow extends JFrame {
         // 右侧 - 已观看列表
         JScrollPane watchedScrollPane = new JScrollPane(watchedList);
         watchedScrollPane.setBorder(BorderFactory.createTitledBorder("已观看的番剧"));
-        
+
         // 中右分割面板 - 中间内容和已观看列表
         JSplitPane middleRightSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, topBottomSplitPane, watchedScrollPane);
         middleRightSplitPane.setDividerLocation(0.8); // 平均分配中间和右侧空间
@@ -346,7 +361,7 @@ public class MainWindow extends JFrame {
                 displaySelectedBangumiDetails(unwatchedList.getSelectedIndex());
             }
         });
-        
+
         // 已观看列表点击事件
         watchedList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -359,26 +374,35 @@ public class MainWindow extends JFrame {
 
         // 添加番剧按钮事件
         addBangumiButton.addActionListener(e -> openAddBangumiDialog());
-        
+
+        // 想要观看番剧按钮事件
+        wantWatchButton.addActionListener(e -> setWantWatchBangumi());
+
+        // 修改番剧按钮事件
+        changeBangumiButton.addActionListener(e -> openChangeBangumiDialog());
+
+        // 删除番剧按钮事件
+        deleteBangumiButton.addActionListener(e -> setDeleteBangumiDialog());
+
         // 选中观看按钮事件
         selectButton.addActionListener(e -> selectUnwatchedBangumi());
 
         // 随机抽取按钮事件
         randomSelectButton.addActionListener(e -> randomSelectUnwatchedBangumi());
-        
+
         // 标记为已观看按钮事件
         markAsWatchedButton.addActionListener(e -> markCurrentAsWatched());
 
         // 标记为未观看按钮事件
         markAsNotWatchedButton.addActionListener(e -> markCurrentAsNotWatched());
-        
+
         // 登录按钮事件
         loginButton.addActionListener(e -> showLoginDialog());
     }
-    
+
     private void randomSelectUnwatchedBangumi() {
         if (allBangumis == null) return;
-        
+
         // 获取所有未观看的番剧
         java.util.List<Bangumi> unwatchedBangumis = new java.util.ArrayList<>();
         for (Bangumi bangumi : allBangumis) {
@@ -386,35 +410,65 @@ public class MainWindow extends JFrame {
                 unwatchedBangumis.add(bangumi);
             }
         }
-        
+
         if (unwatchedBangumis.isEmpty()) {
             JOptionPane.showMessageDialog(this, "没有未观看的番剧！", "提示", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        
-        // 随机选择一个
+
+        // 旧版随机选择一个
+        //Random random = new Random();
+        //Bangumi selected = unwatchedBangumis.get(random.nextInt(unwatchedBangumis.size()));
+
+        Bangumi selected = null;
+        // 计算总权重 - 使用整数权重，每票增加5相当于基础权重100+票数*5
+        int totalWeight = 0;
+        for (Bangumi bangumi : unwatchedBangumis) {
+            // 基础权重为100，每票增加5权重（相当于原来的1.0+votes*0.05，但放大100倍）
+            totalWeight += 100 + (bangumi.getVotes() * 5);
+        }
+
+        // 生成随机权重点
         Random random = new Random();
-        Bangumi selected = unwatchedBangumis.get(random.nextInt(unwatchedBangumis.size()));
-        
+        int randomPoint = random.nextInt(totalWeight);  // 使用nextInt代替nextDouble
+
+        // 根据权重选择番剧
+        int accumulatedWeight = 0;
+        for (Bangumi bangumi : unwatchedBangumis) {
+            accumulatedWeight += 100 + (bangumi.getVotes() * 5);
+            if (randomPoint < accumulatedWeight) {  // 注意这里是小于号，因为randomPoint是0到totalWeight-1的值
+                selected = bangumi;
+                // 显示选中的番剧
+                return;
+            }
+        }
+
+        // 如果由于某种原因没有选中任何番剧，重新随机
+        if (Objects.isNull(selected)) {
+            System.out.println("受到浮点影响，重新随机抽取");
+            selected = unwatchedBangumis.get(random.nextInt(unwatchedBangumis.size()));
+        }
+
+
         // 设置为当前观看
         if (currentBangumiList == null) {
             currentBangumiList = new java.util.ArrayList<>();
         }
         currentBangumiList.clear();
         currentBangumiList.add(selected);
-        
+
         // 保存当前观看到文件（使用用户目录）
         JsonUtils.writeBangumiListToUserDir(currentBangumiList, "current_bangumi.json");
-        
+
         // 推送更改到远程仓库
         if (AppConfig.getBooleanProperty("git.enabled", true)) {
             pushToRemote();
         }
-        
+
         // 更新显示
         updateCurrentBangumiDisplay();
         updateBangumiLists(); // 更新列表以反映更改
-        
+
         JOptionPane.showMessageDialog(this, "已随机选择: " + selected.getTitle(), "随机选择结果", JOptionPane.INFORMATION_MESSAGE);
     }
 
@@ -425,7 +479,7 @@ public class MainWindow extends JFrame {
             return;
         }
 
-        // 获取已观看列表中选中的番剧
+        // 获取未观看列表中选中的番剧
         String selectedTitle = (String) unwatchedList.getModel().getElementAt(selectedIndex);
         // 从allBangumis中找到对应的Bangumi对象
         Bangumi current = null;
@@ -462,71 +516,101 @@ public class MainWindow extends JFrame {
 
         JOptionPane.showMessageDialog(this, "已选择: " + current.getTitle(), "提示", JOptionPane.INFORMATION_MESSAGE);
     }
-    
+
     private void openAddBangumiDialog() {
         // 创建添加番剧对话框
         JDialog dialog = new JDialog(this, "添加未观看番剧", true);
         dialog.setSize(400, 500);
         dialog.setLayout(new BorderLayout());
-        
+
         // 创建表单面板，使用GridBagLayout以更好地控制组件间距
         JPanel formPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 10, 5, 10); // 设置组件周围的间距
-        
+
         JTextField titleField = new JTextField();
         JTextArea descArea = new JTextArea(5, 20); // 增加简介框大小
         descArea.setLineWrap(true);
         descArea.setWrapStyleWord(true);
         JScrollPane descScrollPane = new JScrollPane(descArea);
-        
+
         JTextField writerField = new JTextField();
         JTextField originalField = new JTextField();
         JTextField directorField = new JTextField();
-        JTextField proposerField = new JTextField();
-        
+        JTextField proposerField = new JTextField(USER_NAME);
+
         // 添加标签和输入框
-        gbc.gridx = 0; gbc.gridy = 0; gbc.anchor = GridBagConstraints.WEST; gbc.fill = GridBagConstraints.NONE;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.NONE;
         formPanel.add(new JLabel("番剧名:"), gbc);
-        gbc.gridx = 1; gbc.weightx = 1.0; gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         formPanel.add(titleField, gbc);
-        
-        gbc.gridx = 0; gbc.gridy = 2; gbc.weighty = 0; gbc.fill = GridBagConstraints.NONE;
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.weighty = 0;
+        gbc.fill = GridBagConstraints.NONE;
         formPanel.add(new JLabel("编剧:"), gbc);
-        gbc.gridx = 1; gbc.weightx = 1.0; gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         formPanel.add(writerField, gbc);
-        
-        gbc.gridx = 0; gbc.gridy = 3; gbc.weightx = 0; gbc.fill = GridBagConstraints.NONE;
+
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
         formPanel.add(new JLabel("原作:"), gbc);
-        gbc.gridx = 1; gbc.weightx = 1.0; gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         formPanel.add(originalField, gbc);
-        
-        gbc.gridx = 0; gbc.gridy = 4; gbc.weightx = 0; gbc.fill = GridBagConstraints.NONE;
+
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
         formPanel.add(new JLabel("导演:"), gbc);
-        gbc.gridx = 1; gbc.weightx = 1.0; gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         formPanel.add(directorField, gbc);
-        
-        gbc.gridx = 0; gbc.gridy = 5; gbc.weightx = 0; gbc.fill = GridBagConstraints.NONE;
+
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
         formPanel.add(new JLabel("提议人:"), gbc);
-        gbc.gridx = 1; gbc.weightx = 1.0; gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         formPanel.add(proposerField, gbc);
 
-        gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0; gbc.fill = GridBagConstraints.NONE;
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
         formPanel.add(new JLabel("简介:"), gbc);
-        gbc.gridx = 1; gbc.weighty = 1.0; gbc.fill = GridBagConstraints.BOTH;
+        gbc.gridx = 1;
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
         formPanel.add(descScrollPane, gbc);
-        
+
         // 按钮面板
         JPanel buttonPanel = new JPanel(new FlowLayout());
         JButton addButton = new JButton("添加");
         JButton cancelButton = new JButton("取消");
-        
+
         buttonPanel.add(addButton);
         buttonPanel.add(cancelButton);
-        
+
         dialog.add(formPanel, BorderLayout.CENTER);
         dialog.add(buttonPanel, BorderLayout.SOUTH);
-        
+
         // 添加按钮事件
         addButton.addActionListener(e -> {
             // 获取表单数据
@@ -536,18 +620,18 @@ public class MainWindow extends JFrame {
             String original = originalField.getText().trim();
             String director = directorField.getText().trim();
             String proposer = proposerField.getText().trim();
-            
+
             if (title.isEmpty()) {
                 JOptionPane.showMessageDialog(dialog, "请输入番剧名！", "错误", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            
+
             // 检查是否已存在同名番剧
             if (isTitleExists(title)) {
                 JOptionPane.showMessageDialog(dialog, "番剧《" + title + "》已存在，不能重复添加！", "错误", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            
+
             // 创建新的Bangumi对象
             Bangumi newBangumi = new Bangumi();
             newBangumi.setTitle(title);
@@ -558,46 +642,334 @@ public class MainWindow extends JFrame {
             newBangumi.setProposer(proposer);
             newBangumi.setWatched(false); // 默认未观看
             newBangumi.setVotes(0);
-            
+
             // 添加到总列表
             if (allBangumis == null) {
                 allBangumis = new java.util.ArrayList<>();
             }
             allBangumis.add(newBangumi);
-            
+
             // 保存到文件（使用用户目录）
             JsonUtils.writeBangumiListToUserDir(allBangumis, "bangumi.json");
-            
+
             // 保存当前观看列表（以防万一）
             JsonUtils.writeBangumiListToUserDir(currentBangumiList, "current_bangumi.json");
-            
+
             // 推送更改到远程仓库
             if (AppConfig.getBooleanProperty("git.enabled", true)) {
                 pushToRemote();
             }
-            
+
             // 更新列表显示
             updateBangumiLists();
-            
+
             JOptionPane.showMessageDialog(dialog, "番剧添加成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
             dialog.dispose();
         });
-        
+
         // 取消按钮事件
         cancelButton.addActionListener(e -> dialog.dispose());
-        
+
         dialog.setLocationRelativeTo(this);
         dialog.setVisible(true);
     }
-    
+
+    private void setWantWatchBangumi() {
+
+        int selectedIndex = unwatchedList.getSelectedIndex();
+        if (selectedIndex == -1) {
+            JOptionPane.showMessageDialog(this, "未选择想要观看的番剧", "提示", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // 获取未观看列表中选中的番剧
+        String selectedTitle = (String) unwatchedList.getModel().getElementAt(selectedIndex);
+
+        // 从allBangumis中找到对应的Bangumi对象
+        Bangumi current = null;
+        for (Bangumi bangumi : allBangumis) {
+            if ((bangumi.getTitle() + " (提议人: " + bangumi.getProposer() + ")").equals(selectedTitle)) {
+                current = bangumi;
+                break;
+            }
+        }
+
+        if (current == null) {
+            JOptionPane.showMessageDialog(this, "未选择想要观看的番剧", "提示", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        if (current.getWatcher().indexOf(USER_NAME) != -1) {
+            JOptionPane.showMessageDialog(this, "您已提交过想要观看该番剧了", "提示", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+
+        // 在allBangumis中找到并更新该番剧的状态
+        for (int i = 0; i < allBangumis.size(); i++) {
+            Bangumi bangumi = allBangumis.get(i);
+            if (bangumi.getTitle().equals(current.getTitle())) {
+                bangumi.setVotes(bangumi.getVotes() + 1);
+                bangumi.setWatcher(bangumi.getWatcher() + USER_NAME + ",");
+                break;
+            }
+        }
+
+        // 保存到文件（使用用户目录）
+        JsonUtils.writeBangumiListToUserDir(allBangumis, "bangumi.json");
+
+        // 保存当前观看列表（以防万一）
+        JsonUtils.writeBangumiListToUserDir(currentBangumiList, "current_bangumi.json");
+
+        // 推送更改到远程仓库
+        if (AppConfig.getBooleanProperty("git.enabled", true)) {
+            pushToRemote();
+        }
+
+        // 更新列表显示
+        updateBangumiLists();
+
+        JOptionPane.showMessageDialog(this, "已提交想要观看！", "成功", JOptionPane.INFORMATION_MESSAGE);
+
+    }
+
+    private void openChangeBangumiDialog() {
+
+        int selectedIndex = unwatchedList.getSelectedIndex();
+        if (selectedIndex == -1) {
+            JOptionPane.showMessageDialog(this, "未选择要修改的番剧", "提示", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // 获取未观看列表中选中的番剧
+        String selectedTitle = (String) unwatchedList.getModel().getElementAt(selectedIndex);
+
+        // 从allBangumis中找到对应的Bangumi对象
+        Bangumi current = null;
+        for (Bangumi bangumi : allBangumis) {
+            if ((bangumi.getTitle() + " (提议人: " + bangumi.getProposer() + ")").equals(selectedTitle)) {
+                current = bangumi;
+                break;
+            }
+        }
+
+        if (current == null) {
+            JOptionPane.showMessageDialog(this, "未选择要修改的番剧", "提示", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // 创建修改番剧对话框
+        JDialog dialog = new JDialog(this, "修改未观看番剧", true);
+        dialog.setSize(400, 500);
+        dialog.setLayout(new BorderLayout());
+
+        // 创建表单面板，使用GridBagLayout以更好地控制组件间距
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 10, 5, 10); // 设置组件周围的间距
+
+        JTextField titleField = new JTextField(current.getTitle());
+        titleField.setEditable(false);
+        JTextArea descArea = new JTextArea(current.getDescription(), 5, 20); // 增加简介框大小
+        descArea.setLineWrap(true);
+        descArea.setWrapStyleWord(true);
+        JScrollPane descScrollPane = new JScrollPane(descArea);
+
+        JTextField writerField = new JTextField(current.getWriter());
+        JTextField originalField = new JTextField(current.getOriginal());
+        JTextField directorField = new JTextField(current.getDirector());
+        JTextField proposerField = new JTextField(current.getProposer());
+
+        // 添加标签和输入框
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.NONE;
+        formPanel.add(new JLabel("番剧名:"), gbc);
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        formPanel.add(titleField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        formPanel.add(new JLabel("简介:"), gbc);
+        gbc.gridx = 1;
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        formPanel.add(descScrollPane, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.weighty = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        formPanel.add(new JLabel("编剧:"), gbc);
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        formPanel.add(writerField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        formPanel.add(new JLabel("原作:"), gbc);
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        formPanel.add(originalField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        formPanel.add(new JLabel("导演:"), gbc);
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        formPanel.add(directorField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        formPanel.add(new JLabel("提议人:"), gbc);
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        formPanel.add(proposerField, gbc);
+
+        // 按钮面板
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        JButton addButton = new JButton("添加");
+        JButton cancelButton = new JButton("取消");
+
+        buttonPanel.add(addButton);
+        buttonPanel.add(cancelButton);
+
+        dialog.add(formPanel, BorderLayout.CENTER);
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
+
+        // 添加按钮事件
+        Bangumi finalCurrent = current;
+        addButton.addActionListener(e -> {
+            // 获取表单数据
+            String title = titleField.getText().trim();
+            String description = descArea.getText().trim();
+            String writer = writerField.getText().trim();
+            String original = originalField.getText().trim();
+            String director = directorField.getText().trim();
+            String proposer = proposerField.getText().trim();
+
+            if (title.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "请输入番剧名！", "错误", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            finalCurrent.setTitle(title);
+            finalCurrent.setDescription(description);
+            finalCurrent.setWriter(writer);
+            finalCurrent.setOriginal(original);
+            finalCurrent.setDirector(director);
+            finalCurrent.setProposer(proposer);
+
+            // 在allBangumis中找到并更新该番剧的状态
+            for (int i = 0; i < allBangumis.size(); i++) {
+                Bangumi bangumi = allBangumis.get(i);
+                if (bangumi.getTitle().equals(finalCurrent.getTitle())) {
+                    bangumi = finalCurrent;
+                    break;
+                }
+            }
+
+            // 保存到文件（使用用户目录）
+            JsonUtils.writeBangumiListToUserDir(allBangumis, "bangumi.json");
+
+            // 保存当前观看列表（以防万一）
+            JsonUtils.writeBangumiListToUserDir(currentBangumiList, "current_bangumi.json");
+
+            // 推送更改到远程仓库
+            if (AppConfig.getBooleanProperty("git.enabled", true)) {
+                pushToRemote();
+            }
+
+            // 更新列表显示
+            updateBangumiLists();
+
+            JOptionPane.showMessageDialog(dialog, "番剧修改成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
+            dialog.dispose();
+        });
+
+        // 取消按钮事件
+        cancelButton.addActionListener(e -> dialog.dispose());
+
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    private void setDeleteBangumiDialog() {
+
+        int selectedIndex = unwatchedList.getSelectedIndex();
+        if (selectedIndex == -1) {
+            JOptionPane.showMessageDialog(this, "未选择要删除的番剧", "提示", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // 获取未观看列表中选中的番剧
+        String selectedTitle = (String) unwatchedList.getModel().getElementAt(selectedIndex);
+
+        // 从allBangumis中找到对应的Bangumi对象
+        Bangumi current = null;
+        for (Bangumi bangumi : allBangumis) {
+            if ((bangumi.getTitle() + " (提议人: " + bangumi.getProposer() + ")").equals(selectedTitle)) {
+                current = bangumi;
+                break;
+            }
+        }
+
+        if (current == null) {
+            JOptionPane.showMessageDialog(this, "未选择要删除的番剧", "提示", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // 在allBangumis中移除该番剧
+
+        allBangumis.remove(current);
+
+        // 从当前观看列表中移除
+        if (currentBangumiList.get(0).getTitle().equals(current.getTitle())) {
+            currentBangumiList.clear();
+        }
+
+        // 保存到文件（使用用户目录）
+        JsonUtils.writeBangumiListToUserDir(allBangumis, "bangumi.json");
+
+        // 同时清空当前观看文件
+        JsonUtils.writeBangumiListToUserDir(currentBangumiList, "current_bangumi.json");
+
+        // 推送更改到远程仓库
+        if (AppConfig.getBooleanProperty("git.enabled", true)) {
+            pushToRemote();
+        }
+
+        // 更新显示
+        updateCurrentBangumiDisplay();
+        updateBangumiLists(); // 更新列表以反映更改
+
+        JOptionPane.showMessageDialog(this, "番剧删除成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
+
+    }
+
     private void markCurrentAsWatched() {
         if (currentBangumiList == null || currentBangumiList.isEmpty()) {
             JOptionPane.showMessageDialog(this, "当前没有正在观看的番剧！", "提示", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        
+
         Bangumi current = currentBangumiList.get(0);
-        
+
         // 在allBangumis中找到并更新该番剧的状态
         for (int i = 0; i < allBangumis.size(); i++) {
             Bangumi bangumi = allBangumis.get(i);
@@ -606,21 +978,21 @@ public class MainWindow extends JFrame {
                 break;
             }
         }
-        
+
         // 从当前观看列表中移除
         currentBangumiList.clear();
-        
+
         // 保存到文件（使用用户目录）
         JsonUtils.writeBangumiListToUserDir(allBangumis, "bangumi.json");
-        
+
         // 同时清空当前观看文件
         JsonUtils.writeBangumiListToUserDir(currentBangumiList, "current_bangumi.json");
-        
+
         // 推送更改到远程仓库
         if (AppConfig.getBooleanProperty("git.enabled", true)) {
             pushToRemote();
         }
-        
+
         // 更新显示
         updateCurrentBangumiDisplay();
         updateBangumiLists(); // 更新列表以反映更改        
@@ -633,7 +1005,7 @@ public class MainWindow extends JFrame {
             JOptionPane.showMessageDialog(this, "未选择要修改的番剧", "提示", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        
+
         // 获取已观看列表中选中的番剧
         String selectedTitle = (String) watchedList.getModel().getElementAt(selectedIndex);
         // 从allBangumis中找到对应的Bangumi对象
@@ -644,7 +1016,7 @@ public class MainWindow extends JFrame {
                 break;
             }
         }
-        
+
         if (current == null) {
             JOptionPane.showMessageDialog(this, "未选择要修改的番剧", "提示", JOptionPane.INFORMATION_MESSAGE);
             return;
@@ -688,7 +1060,7 @@ public class MainWindow extends JFrame {
             }
         }
     }
-    
+
     private void displaySelectedBangedumiDetailsForWatched(int index) {
         if (allBangumis != null && index >= 0) {
             // 找到已观看列表中的第index个元素
@@ -705,27 +1077,27 @@ public class MainWindow extends JFrame {
             }
         }
     }
-    
+
     private boolean isTitleExists(String title) {
         if (allBangumis == null || title == null || title.isEmpty()) {
             return false;
         }
-        
+
         for (Bangumi bangumi : allBangumis) {
             if (title.equals(bangumi.getTitle())) {
                 return true;
             }
         }
-        
+
         return false;
     }
-    
+
     private void displayBangumiDetail(Bangumi bangumi) {
         if (bangumi == null) {
             bangumiDetailsArea.setText("番剧信息为空");
             return;
         }
-        
+
         StringBuilder detail = new StringBuilder();
         detail.append("番剧名: ").append(bangumi.getTitle() != null ? bangumi.getTitle() : "未知").append("\n");
         detail.append("简介: ").append(bangumi.getDescription() != null ? bangumi.getDescription() : "无").append("\n");
@@ -735,7 +1107,7 @@ public class MainWindow extends JFrame {
         detail.append("提议人: ").append(bangumi.getProposer() != null ? bangumi.getProposer() : "未知").append("\n");
         detail.append("是否观看完: ").append(bangumi.isWatched() ? "是" : "否").append("\n");
         detail.append("票数: ").append(bangumi.getVotes()).append("\n");
-        
+
         // 如果有观看时间和观看人信息，则显示
         if (bangumi.getWatchTime() != null) {
             detail.append("观看时间: ").append(bangumi.getWatchTime().toString()).append("\n");
@@ -747,26 +1119,38 @@ public class MainWindow extends JFrame {
         } else {
             detail.append("观看人: 未设定\n");
         }
-        
+
         bangumiDetailsArea.setText(detail.toString());
     }
 
     private void showLoginDialog() {
         JPasswordField passwordField = new JPasswordField();
         Object[] message = {
-            "请输入密码:",
-            passwordField
+                "请输入密码:",
+                passwordField
         };
 
         int option = JOptionPane.showConfirmDialog(this, message, "登录", JOptionPane.OK_CANCEL_OPTION);
         if (option == JOptionPane.OK_OPTION) {
             char[] password = passwordField.getPassword();
             String passwordStr = new String(password);
-            
+
             if ("wisdomGuo97".equals(passwordStr)) {
                 // 登录成功，显示隐藏的按钮
                 selectButton.setVisible(true);
                 randomSelectButton.setVisible(true);
+                changeBangumiButton.setVisible(true);
+                markAsWatchedButton.setVisible(true);
+                markAsNotWatchedButton.setVisible(true);
+                loginButton.setVisible(false); // 隐藏登录按钮
+                isLoggedIn = true;
+                JOptionPane.showMessageDialog(this, "登录成功！", "提示", JOptionPane.INFORMATION_MESSAGE);
+            } else if ("121212U".equals(passwordStr)) {
+                // 登录成功，显示隐藏的按钮
+                selectButton.setVisible(true);
+                randomSelectButton.setVisible(true);
+                changeBangumiButton.setVisible(true);
+                deleteBangumiButton.setVisible(true);
                 markAsWatchedButton.setVisible(true);
                 markAsNotWatchedButton.setVisible(true);
                 loginButton.setVisible(false); // 隐藏登录按钮

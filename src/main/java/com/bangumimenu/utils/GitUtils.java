@@ -2,7 +2,6 @@ package com.bangumimenu.utils;
 
 import com.bangumimenu.config.AppConfig;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.PullResult;
 import org.eclipse.jgit.api.PushCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Repository;

@@ -3,7 +3,6 @@ package com.bangumimenu.utils;
 import com.bangumimenu.config.AppConfig;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 
 /**
@@ -12,6 +11,7 @@ import java.nio.file.Files;
  */
 public class UserDataSync {
     
+    public static final String USER_NAME = System.getProperty("user.name");
     private static final String USER_HOME_DIR = System.getProperty("user.home");
     private static final String APP_DATA_DIR = USER_HOME_DIR + "/.bangumi-menu";
     
